@@ -35,15 +35,22 @@ export default function RegisterPage() {
     setError('');
     setSuccess('');
     
-    const { confirmPassword, ...registerData } = data;
-    const result = await registerUser(registerData);
-    if (result.success) {
-      setSuccess(result.message || '회원가입이 완료되었습니다.');
-      setTimeout(() => {
-        router.push(ROUTES.LOGIN);
-      }, 2000);
-    } else {
-      setError(result.error || '회원가입에 실패했습니다.');
+    try {
+      const { confirmPassword, ...registerData } = data;
+      const result = await registerUser(registerData);
+      if (result.success) {
+        setSuccess(result.message || '회원가입이 완료되었습니다.');
+        setTimeout(() => {
+          router.push(ROUTES.LOGIN);
+        }, 2000);
+      } else {
+        const errorMessage = result.error || '회원가입에 실패했습니다.';
+        console.error('회원가입 에러:', errorMessage);
+        setError(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('회원가입 예외:', error);
+      setError('회원가입 중 오류가 발생했습니다.');
     }
   };
 
@@ -65,14 +72,31 @@ export default function RegisterPage() {
           <CardContent>
             <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-                  {error}
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-md">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <span className="text-red-500 text-lg">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-red-700 font-medium">회원가입 실패</p>
+                      <p className="text-red-600 text-sm mt-1">{error}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {success && (
-                <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md">
-                  {success}
+                <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-md">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <span className="text-green-500 text-lg">✅</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-green-700 font-medium">회원가입 성공</p>
+                      <p className="text-green-600 text-sm mt-1">{success}</p>
+                      <p className="text-green-600 text-sm">잠시 후 로그인 페이지로 이동합니다...</p>
+                    </div>
+                  </div>
                 </div>
               )}
 

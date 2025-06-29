@@ -5,7 +5,7 @@ import { getFromLocalStorage, removeFromLocalStorage } from '@/utils';
 // Axios 인스턴스 생성
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || '',
-  timeout: 10000,
+  timeout: 5000, // 5초로 단축
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,10 +14,12 @@ const api: AxiosInstance = axios.create({
 // 요청 인터셉터
 api.interceptors.request.use(
   (config) => {
-    // 로컬 스토리지에서 토큰 가져오기
-    const authData = getFromLocalStorage<{ token?: string }>('auth-storage');
-    if (authData?.token) {
-      config.headers.Authorization = `Bearer ${authData.token}`;
+    // Zustand persist에서 토큰 가져오기
+    const authStorage = getFromLocalStorage<{ state?: { token?: string } }>('auth-storage');
+    const token = authStorage?.state?.token;
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -32,8 +34,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // 401 에러 시 로그아웃 처리
-    if (error.response?.status === 401) {
+    // 인증 관련 API 호출이 아닌 경우에만 401 에러 시 자동 로그아웃 처리
+    const isAuthAPI = error.config?.url?.includes('/api/auth/login') || 
+                      error.config?.url?.includes('/api/auth/register');
+    
+    if (error.response?.status === 401 && !isAuthAPI) {
       removeFromLocalStorage('auth-storage');
       window.location.href = '/auth/login';
     }
@@ -57,10 +62,35 @@ export const apiCall = async <T>(
       error: backendResponse.success === false ? backendResponse.message : undefined
     };
   } catch (error: any) {
-    return {
+    const errorCode = error.status;
+
+    var errorReturn = {
       success: false,
-      error: error.response?.data?.message || error.message,
+      message: error.message,
+      error: error.error
     };
+
+    if (errorCode) {
+      switch (errorCode) {
+        case 401:
+          errorReturn.message = "토큰이 없거나, ID/PWD 가 일치하지 않습니다."
+          break;
+        case 403:
+          errorReturn.message = "권한이 없습니다."
+          break;
+        case 404:
+          errorReturn.message = "요청한 리소스를 찾을 수 없습니다."
+          break;
+        case 500:
+          errorReturn.message = "서버 오류가 발생했습니다."
+          break;
+        default:
+          errorReturn.message = "알 수 없는 오류가 발생했습니다."
+          break;
+      }
+      return errorReturn;
+    }
+    return errorReturn;
   }
 };
 
@@ -163,6 +193,21 @@ export const questionAPI = {
       method: 'DELETE',
       url: `/api/questions/${id}`,
     }),
+
+  // JSON 파일 업로드
+  uploadQuestions: (file: File) => {
+    const formData = new FormData();
+    formData.append('questions', file);
+    
+    return apiCall({
+      method: 'POST',
+      url: '/api/questions/upload',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 
   generateQuestions: (params: any) =>
     apiCall({

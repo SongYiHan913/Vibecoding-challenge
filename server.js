@@ -6,6 +6,16 @@ const morgan = require('morgan');
 const path = require('path');
 require('dotenv').config();
 
+// 환경변수 기본값 설정
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'default-secret-key-for-development-only';
+  console.warn('⚠️  JWT_SECRET이 설정되지 않았습니다. 개발용 기본값을 사용합니다.');
+}
+
+if (!process.env.JWT_EXPIRES_IN) {
+  process.env.JWT_EXPIRES_IN = '24h';
+}
+
 const dev = process.env.NODE_ENV !== 'production';
 const port = process.env.PORT || 3000;
 
@@ -47,6 +57,29 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// 에러 핸들링 미들웨어
+app.use((error, req, res, next) => {
+  console.error('서버 에러:', error);
+  
+  if (res.headersSent) {
+    return next(error);
+  }
+  
+  res.status(500).json({
+    success: false,
+    message: '서버 내부 오류가 발생했습니다.',
+    error: dev ? error.message : undefined
+  });
+});
+
+// 404 핸들러 (API 경로에 대해서만)
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: '요청한 API 엔드포인트를 찾을 수 없습니다.'
   });
 });
 

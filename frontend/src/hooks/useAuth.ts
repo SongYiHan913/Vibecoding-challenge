@@ -24,30 +24,26 @@ export const useAuth = () => {
     setLoading(true);
     try {
       const response = await authAPI.login(email, password);
+      
       if (response.success && response.data) {
         // 이제 response.data는 { user, token } 구조
         const loginData = response.data as any;
         const userData = loginData.user;
+        const token = loginData.token;
         
-        if (userData && userData.role) {
-          login(userData);
-          // 역할에 따라 리다이렉트
-          if (userData.role === 'admin') {
-            router.push(ROUTES.ADMIN_DASHBOARD);
-          } else {
-            router.push(ROUTES.CANDIDATE_TEST);
-          }
-          return { success: true };
+        if (userData && userData.role && token) {
+          login(userData, token);
+          return { success: true, user: userData };
         } else {
-          console.error('사용자 데이터:', userData);
-          return { success: false, error: '사용자 정보를 찾을 수 없습니다.' };
+          return { success: false, error: '사용자 정보 또는 토큰을 찾을 수 없습니다.' };
         }
       } else {
-        return { success: false, error: response.error };
+        // API 호출이 실패한 경우
+        const errorMessage = response.error || response.message || '로그인에 실패했습니다.';
+        return { success: false, error: errorMessage };
       }
     } catch (error: any) {
-      console.error('로그인 에러:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || '로그인 중 오류가 발생했습니다.' };
     } finally {
       setLoading(false);
     }
@@ -58,13 +54,15 @@ export const useAuth = () => {
     setLoading(true);
     try {
       const response = await authAPI.register(userData);
+      
       if (response.success) {
-        return { success: true, message: '회원가입이 완료되었습니다.' };
+        return { success: true, message: response.message || '회원가입이 완료되었습니다.' };
       } else {
-        return { success: false, error: response.error };
+        const errorMessage = response.error || response.message || '회원가입에 실패했습니다.';
+        return { success: false, error: errorMessage };
       }
     } catch (error: any) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || '회원가입 중 오류가 발생했습니다.' };
     } finally {
       setLoading(false);
     }
@@ -75,10 +73,10 @@ export const useAuth = () => {
     try {
       await authAPI.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      // 로그아웃 에러는 무시하고 진행
     } finally {
       logout();
-      router.push(ROUTES.LOGIN);
+      router.push(ROUTES.HOME);
     }
   };
 

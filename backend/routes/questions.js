@@ -8,9 +8,16 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+// uploads/questions 디렉토리 존재 확인 및 생성
+const uploadsDir = 'uploads/questions/';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 uploads/questions 디렉토리를 생성했습니다.');
+}
+
 // 파일 업로드 설정
 const upload = multer({
-  dest: 'uploads/questions/',
+  dest: uploadsDir,
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760 // 10MB
   },
@@ -112,7 +119,41 @@ router.get('/', (req, res) => {
 });
 
 // JSON 파일로 질문 업로드 (관리자만)
-router.post('/upload', requireAdmin, upload.single('questionsFile'), (req, res) => {
+router.post('/upload', requireAdmin, (req, res, next) => {
+  upload.single('questions')(req, res, (err) => {
+    if (err) {
+      console.error('❌ Multer 업로드 오류:', err);
+      
+      let errorMessage = '파일 업로드 중 오류가 발생했습니다.';
+      
+      if (err.code === 'UNEXPECTED_FIELD') {
+        errorMessage = `예상하지 못한 필드입니다. 'questions' 필드를 사용해주세요. (받은 필드: ${err.field})`;
+      } else if (err.code === 'LIMIT_FILE_SIZE') {
+        errorMessage = '파일 크기가 너무 큽니다. 10MB 이하의 파일을 업로드해주세요.';
+      } else if (err.message === 'JSON 파일만 업로드 가능합니다.') {
+        errorMessage = 'JSON 파일만 업로드 가능합니다.';
+      }
+      
+      return res.status(400).json({
+        success: false,
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+    
+    // 업로드 성공 시 기존 로직 실행
+    handleFileUpload(req, res);
+  });
+});
+
+// 파일 업로드 처리 함수
+function handleFileUpload(req, res) {
+  // 업로드 디렉토리 재확인 (안전장치)
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 업로드 중 uploads/questions 디렉토리를 생성했습니다.');
+  }
+
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -121,15 +162,22 @@ router.post('/upload', requireAdmin, upload.single('questionsFile'), (req, res) 
   }
 
   try {
+    console.log('📁 파일 업로드 성공:', req.file);
+    
     // JSON 파일 읽기
     const filePath = req.file.path;
     const fileContent = fs.readFileSync(filePath, 'utf8');
+    
+    console.log('📄 파일 내용 읽기 성공, 크기:', fileContent.length);
+    
     const questionsData = JSON.parse(fileContent);
+    console.log('✅ JSON 파싱 성공, 질문 개수:', questionsData.length);
 
     // 파일 삭제
     fs.unlinkSync(filePath);
 
     if (!Array.isArray(questionsData)) {
+      console.error('❌ 질문 데이터가 배열이 아님:', typeof questionsData);
       return res.status(400).json({
         success: false,
         message: '질문 데이터는 배열 형태여야 합니다.'
@@ -142,19 +190,20 @@ router.post('/upload', requireAdmin, upload.single('questionsFile'), (req, res) 
 
     questionsData.forEach((questionData, index) => {
       const {
-        type, format, difficulty, experienceLevel, field, category,
+        id, type, format, difficulty, experienceLevel, field, category,
         question, options, correctAnswer, correctAnswerText,
-        requiredKeywords, points
+        requiredKeywords, points, tags
       } = questionData;
 
       // 필수 필드 검증
       if (!type || !format || !difficulty || !experienceLevel || !question || !points) {
-        errors.push(`질문 ${index + 1}: 필수 필드가 누락되었습니다.`);
+        errors.push(`질문 ${index + 1}: 필수 필드가 누락되었습니다. (type: ${type}, format: ${format}, difficulty: ${difficulty}, experienceLevel: ${experienceLevel}, question: ${question ? '있음' : '없음'}, points: ${points})`);
         errorCount++;
         return;
       }
 
-      const questionId = uuidv4();
+      // ID가 있으면 사용하고, 없으면 새로 생성
+      const questionId = id || uuidv4();
 
       db.run(
         `INSERT INTO questions (
@@ -197,19 +246,31 @@ router.post('/upload', requireAdmin, upload.single('questionsFile'), (req, res) 
     });
 
   } catch (error) {
-    console.error('JSON 파일 처리 오류:', error);
+    console.error('❌ JSON 파일 처리 오류:', error);
+    console.error('오류 유형:', error.name);
+    console.error('오류 메시지:', error.message);
     
     // 파일이 존재하면 삭제
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
+      console.log('🗑️  임시 파일 삭제 완료');
+    }
+
+    let errorMessage = 'JSON 파일 처리 중 오류가 발생했습니다.';
+    
+    if (error instanceof SyntaxError) {
+      errorMessage = 'JSON 파일 형식이 올바르지 않습니다. 유효한 JSON 파일인지 확인해주세요.';
+    } else if (error.code === 'ENOENT') {
+      errorMessage = '파일을 찾을 수 없습니다.';
     }
 
     res.status(400).json({
       success: false,
-      message: 'JSON 파일 형식이 올바르지 않습니다.'
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-});
+}
 
 // 특정 질문 조회
 router.get('/:id', (req, res) => {

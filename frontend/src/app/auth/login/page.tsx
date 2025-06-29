@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -14,8 +14,15 @@ import { isValidEmail } from '@/utils';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
   const [error, setError] = useState<string>('');
+
+  // 이미 로그인된 사용자는 홈페이지로 리다이렉트
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      router.push(ROUTES.HOME);
+    }
+  }, [isAuthenticated, user, router]);
 
   const {
     register,
@@ -26,9 +33,19 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     setError('');
     
-    const result = await login(data.email, data.password);
-    if (!result.success) {
-      setError(result.error || '로그인에 실패했습니다.');
+    try {
+      const result = await login(data.email, data.password);
+      if (result.success) {
+        // 로그인 성공 시 홈페이지로 리다이렉트
+        router.push(ROUTES.HOME);
+      } else {
+        // 로그인 실패 시 에러 메시지 표시 (console.error는 사용하지 않음)
+        const errorMessage = result.error || '로그인에 실패했습니다.';
+        setError(errorMessage);
+      }
+    } catch (error: any) {
+      // 예외 발생 시 에러 메시지 표시 (console.error는 사용하지 않음)
+      setError('로그인 중 오류가 발생했습니다.');
     }
   };
 
@@ -50,8 +67,16 @@ export default function LoginPage() {
           <CardContent>
             <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-                  {error}
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-md">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <span className="text-red-500 text-lg">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-red-700 font-medium">로그인 실패</p>
+                      <p className="text-red-600 text-sm mt-1">{error}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -47,31 +47,42 @@ router.post('/login', (req, res) => {
       }
 
       // JWT 토큰 생성
-      const token = jwt.sign(
-        { 
-          userId: user.id, 
-          email: user.email, 
-          role: user.role 
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
-
-      // 비밀번호 제외하고 사용자 정보 반환
-      const { password: _, ...userWithoutPassword } = user;
-
-      res.json({
-        success: true,
-        message: '로그인에 성공했습니다.',
-        data: {
-          user: {
-            ...userWithoutPassword,
-            createdAt: new Date(userWithoutPassword.created_at),
-            updatedAt: new Date(userWithoutPassword.updated_at)
+      try {
+        const jwtSecret = process.env.JWT_SECRET || 'default-secret-key-for-development-only';
+        const jwtExpires = process.env.JWT_EXPIRES_IN || '24h';
+        
+        const token = jwt.sign(
+          { 
+            userId: user.id, 
+            email: user.email, 
+            role: user.role 
           },
-          token
-        }
-      });
+          jwtSecret,
+          { expiresIn: jwtExpires }
+        );
+
+        // 비밀번호 제외하고 사용자 정보 반환
+        const { password: _, ...userWithoutPassword } = user;
+
+        res.json({
+          success: true,
+          message: '로그인에 성공했습니다.',
+          data: {
+            user: {
+              ...userWithoutPassword,
+              createdAt: new Date(userWithoutPassword.created_at),
+              updatedAt: new Date(userWithoutPassword.updated_at)
+            },
+            token
+          }
+        });
+      } catch (tokenError) {
+        console.error('JWT 토큰 생성 오류:', tokenError);
+        return res.status(500).json({
+          success: false,
+          message: 'JWT 토큰 생성 중 오류가 발생했습니다.'
+        });
+      }
     }
   );
 });

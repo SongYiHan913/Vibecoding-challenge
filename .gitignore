@@ -2,9 +2,6 @@
 node_modules/
 frontend/node_modules/
 
-# Environment variables
-.env
-
 # Database
 database/
 *.db

@@ -13,10 +13,12 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // 로그인된 사용자는 적절한 페이지로 리다이렉트
-      if (isAdmin) {
+      // 현재 경로가 이미 admin이나 candidate 경로인지 확인
+      const currentPath = window.location.pathname;
+      
+      if (isAdmin && !currentPath.startsWith('/admin')) {
         router.push(ROUTES.ADMIN_DASHBOARD);
-      } else if (isCandidate) {
+      } else if (isCandidate && !currentPath.startsWith('/candidate')) {
         router.push(ROUTES.CANDIDATE_TEST);
       }
     }
