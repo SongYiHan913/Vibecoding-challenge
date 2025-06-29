@@ -10,7 +10,7 @@
 
 ```json
 {
-  "id": "고유식별자 (예: java-001, mariadb-001)",
+  "id": "고유식별자 (예: java-001, mariadab-001)",
   "type": "technical",
   "format": "multiple-choice 또는 essay",
   "difficulty": "easy, medium, hard 중 하나",

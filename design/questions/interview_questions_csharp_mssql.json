@@ -1,0 +1,442 @@
+[
+  {
+    "id": "csharp-001",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "csharp",
+    "category": "csharp",
+    "question": "다음 중 C#에서 제네릭(Generic)의 올바른 사용 예는 무엇인가요?",
+    "options": [
+      "List<int> myList = new List<int>();",
+      "int myList = new List<int>();",
+      "List myList = new List<int>();",
+      "List<int> myList = new List();"
+    ],
+    "correctAnswer": 0,
+    "points": 5,
+    "tags": [
+      "generic",
+      "list",
+      "syntax"
+    ]
+  },
+  {
+    "id": "csharp-002",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "csharp",
+    "category": "csharp",
+    "question": "LINQ를 사용하여 리스트에서 짝수만 필터링하려면 어떤 코드가 가장 적절한가요?",
+    "options": [
+      "numbers.Where(x => x % 2 == 0);",
+      "numbers.Select(x => x % 2 == 0);",
+      "numbers.Find(x => x % 2 == 0);",
+      "numbers.Filter(x => x % 2 == 0);"
+    ],
+    "correctAnswer": 0,
+    "points": 5,
+    "tags": [
+      "linq",
+      "where",
+      "filtering"
+    ]
+  },
+  {
+    "id": "csharp-003",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "csharp",
+    "category": "aspnet",
+    "question": "ASP.NET Core에서 의존성 주입을 설정하는 기본 방법은?",
+    "options": [
+      "services.AddSingleton<IMyService, MyService>();",
+      "container.Inject<IMyService>(MyService);",
+      "AddDependency<IMyService>(MyService);",
+      "services.Register(IMyService, MyService);"
+    ],
+    "correctAnswer": 0,
+    "points": 7,
+    "tags": [
+      "dependency injection",
+      "asp.net core",
+      "services"
+    ]
+  },
+  {
+    "id": "csharp-004",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "csharp",
+    "category": "entityframework",
+    "question": "Entity Framework Core에서 Code First 방식을 사용할 때 마이그레이션과 DB 생성 과정을 설명하세요.",
+    "correctAnswerText": "Code First에서는 C# 클래스를 모델로 사용하고, 마이그레이션 명령어를 통해 DB 스키마를 생성한다.",
+    "requiredKeywords": [
+      "Code First",
+      "마이그레이션",
+      "DbContext"
+    ],
+    "points": 8,
+    "tags": [
+      "ef core",
+      "code first",
+      "migration"
+    ]
+  },
+  {
+    "id": "csharp-005",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "junior",
+    "field": "csharp",
+    "category": "performance",
+    "question": "비동기 메서드를 사용할 때 async/await를 적절히 사용하지 않았을 경우 발생할 수 있는 문제점과 해결 방법을 설명하세요.",
+    "correctAnswerText": "비동기 흐름이 차단되거나 데드락이 발생할 수 있으며, await을 적절히 사용하여 비동기 흐름을 유지해야 한다.",
+    "requiredKeywords": [
+      "async",
+      "await",
+      "데드락"
+    ],
+    "points": 10,
+    "tags": [
+      "async programming",
+      "비동기",
+      "성능 최적화"
+    ]
+  },
+  {
+    "id": "csharp-006",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "performance",
+    "question": "C#에서 GC(가비지 컬렉션) 튜닝에 영향을 줄 수 있는 설정은?",
+    "options": [
+      "Server GC 사용 설정",
+      "LINQ 캐시 사용",
+      "using 문 제거",
+      "스레드 풀 크기 변경"
+    ],
+    "correctAnswer": 0,
+    "points": 8,
+    "tags": [
+      "GC",
+      "메모리 관리",
+      "서버"
+    ]
+  },
+  {
+    "id": "csharp-007",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "test",
+    "question": ".NET에서 Mock 객체를 사용한 단위 테스트의 주 목적은?",
+    "options": [
+      "외부 의존성을 제거하고 테스트 대상을 격리하기 위해",
+      "코드를 컴파일 하기 위해",
+      "배포 속도를 높이기 위해",
+      "코드 커버리지를 자동 측정하기 위해"
+    ],
+    "correctAnswer": 0,
+    "points": 8,
+    "tags": [
+      "unit test",
+      "mock",
+      "testing"
+    ]
+  },
+  {
+    "id": "csharp-008",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "entityframework",
+    "question": "EF Core에서 복잡한 관계형 데이터 쿼리를 최적화하려면 어떤 전략이 가장 효과적인가?",
+    "options": [
+      "Include + ThenInclude를 통한 명시적 로딩",
+      "lazy loading을 항상 사용",
+      "전체 테이블 조회",
+      "모든 데이터를 캐싱"
+    ],
+    "correctAnswer": 0,
+    "points": 10,
+    "tags": [
+      "쿼리 최적화",
+      "EF Core",
+      "Include"
+    ]
+  },
+  {
+    "id": "csharp-009",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "middleware",
+    "question": "ASP.NET Core에서 커스텀 미들웨어를 구현하고 등록하는 방법을 설명하세요.",
+    "correctAnswerText": "Invoke 또는 InvokeAsync 메서드를 포함한 클래스를 구현하고 app.UseMiddleware를 통해 등록한다.",
+    "requiredKeywords": [
+      "UseMiddleware",
+      "Invoke",
+      "Pipeline"
+    ],
+    "points": 9,
+    "tags": [
+      "middleware",
+      "asp.net core",
+      "custom"
+    ]
+  },
+  {
+    "id": "csharp-010",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "architecture",
+    "question": "Web API에서 서비스 계층과 컨트롤러 계층을 분리하는 이유와 장점을 설명하세요.",
+    "correctAnswerText": "관심사의 분리를 통해 테스트 용이성과 유지보수성을 향상시킨다.",
+    "requiredKeywords": [
+      "서비스 계층",
+      "관심사의 분리",
+      "유지보수"
+    ],
+    "points": 9,
+    "tags": [
+      "layered architecture",
+      "web api"
+    ]
+  },
+  {
+    "id": "csharp-011",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "performance",
+    "question": "대규모 트래픽이 발생하는 상황에서 ASP.NET Core Web API의 성능 병목을 분석하고 해결하는 방법을 설명하세요.",
+    "correctAnswerText": "미들웨어 로깅, APM 도구 사용, 병렬 처리 및 캐시 도입 등이 도움이 된다.",
+    "requiredKeywords": [
+      "APM",
+      "성능 병목",
+      "캐싱"
+    ],
+    "points": 10,
+    "tags": [
+      "성능 최적화",
+      "병목 분석"
+    ]
+  },
+  {
+    "id": "csharp-012",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "csharp",
+    "category": "exception",
+    "question": "ASP.NET Core에서 전역 예외 처리를 구현하는 방법과 그 이점에 대해 설명하세요.",
+    "correctAnswerText": "ExceptionHandlingMiddleware를 사용하여 예외를 로깅하고, 사용자에게 공통 응답 형식을 제공할 수 있다.",
+    "requiredKeywords": [
+      "ExceptionHandlingMiddleware",
+      "로깅",
+      "공통 응답"
+    ],
+    "points": 10,
+    "tags": [
+      "예외 처리",
+      "global exception"
+    ]
+  },
+  {
+    "id": "mssql-001",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "mssql",
+    "category": "basic",
+    "question": "다음 중 INNER JOIN의 역할은 무엇인가요?",
+    "options": [
+      "두 테이블의 일치하는 행만 반환",
+      "모든 왼쪽 테이블 행을 반환",
+      "모든 오른쪽 테이블 행을 반환",
+      "모든 조합의 행을 반환"
+    ],
+    "correctAnswer": 0,
+    "points": 5,
+    "tags": [
+      "join",
+      "inner join",
+      "기본 SQL"
+    ]
+  },
+  {
+    "id": "mssql-002",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "mssql",
+    "category": "function",
+    "question": "다음 중 스칼라 함수의 특징으로 올바른 설명은?",
+    "options": [
+      "하나의 값을 반환한다",
+      "테이블 전체를 반환한다",
+      "트리거 내에서만 사용된다",
+      "데이터 삽입에만 사용된다"
+    ],
+    "correctAnswer": 0,
+    "points": 6,
+    "tags": [
+      "scalar function",
+      "sql function"
+    ]
+  },
+  {
+    "id": "mssql-003",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "mssql",
+    "category": "transaction",
+    "question": "트랜잭션의 ACID 속성을 설명하고, 왜 중요한지 기술하세요.",
+    "correctAnswerText": "Atomicity, Consistency, Isolation, Durability는 데이터 무결성과 안정성을 보장한다.",
+    "requiredKeywords": [
+      "Atomicity",
+      "Isolation",
+      "Durability"
+    ],
+    "points": 8,
+    "tags": [
+      "transaction",
+      "acid"
+    ]
+  },
+  {
+    "id": "mssql-004",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "junior",
+    "field": "mssql",
+    "category": "locking",
+    "question": "SQL Server에서 데드락이 발생하는 시나리오와 이를 방지하기 위한 전략을 설명하세요.",
+    "correctAnswerText": "두 개 이상의 트랜잭션이 서로의 자원을 기다릴 때 데드락이 발생하며, 순서 제어나 타임아웃 설정으로 방지할 수 있다.",
+    "requiredKeywords": [
+      "데드락",
+      "순서",
+      "타임아웃"
+    ],
+    "points": 9,
+    "tags": [
+      "deadlock",
+      "트랜잭션"
+    ]
+  },
+  {
+    "id": "mssql-005",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "mssql",
+    "category": "index",
+    "question": "비클러스터드 인덱스(Non-clustered Index)의 특징으로 가장 적절한 것은?",
+    "options": [
+      "데이터 페이지와는 별도로 저장된다",
+      "테이블에 반드시 하나만 존재한다",
+      "데이터 정렬과 함께 저장된다",
+      "항상 클러스터 인덱스보다 느리다"
+    ],
+    "correctAnswer": 0,
+    "points": 7,
+    "tags": [
+      "index",
+      "non-clustered"
+    ]
+  },
+  {
+    "id": "mssql-006",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "mssql",
+    "category": "performance",
+    "question": "SQL Server에서 실행계획(Execution Plan)을 통해 얻을 수 있는 정보는?",
+    "options": [
+      "쿼리 최적화 힌트 및 인덱스 사용 여부",
+      "테이블 구조",
+      "사용자 권한",
+      "백업 일정"
+    ],
+    "correctAnswer": 0,
+    "points": 9,
+    "tags": [
+      "execution plan",
+      "쿼리 최적화"
+    ]
+  },
+  {
+    "id": "mssql-007",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "mssql",
+    "category": "tuning",
+    "question": "SQL Server에서 파티셔닝(partitioning)을 통해 쿼리 성능을 향상시키는 방법을 설명하세요.",
+    "correctAnswerText": "큰 테이블을 파티션으로 나누어 검색 범위를 줄여 성능을 향상시킨다.",
+    "requiredKeywords": [
+      "파티셔닝",
+      "쿼리 성능",
+      "테이블 분할"
+    ],
+    "points": 10,
+    "tags": [
+      "partitioning",
+      "쿼리 최적화"
+    ]
+  },
+  {
+    "id": "mssql-008",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "mssql",
+    "category": "statistics",
+    "question": "SQL Server의 통계(Statistics)가 성능에 미치는 영향과 최신 상태로 유지하는 방법을 설명하세요.",
+    "correctAnswerText": "통계는 실행계획 생성에 영향을 주며, 주기적 업데이트 또는 AUTO_UPDATE_STATISTICS 옵션으로 최신 상태를 유지한다.",
+    "requiredKeywords": [
+      "통계",
+      "실행계획",
+      "업데이트"
+    ],
+    "points": 10,
+    "tags": [
+      "statistics",
+      "sql performance"
+    ]
+  }
+]

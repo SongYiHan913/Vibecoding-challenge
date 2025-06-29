@@ -1,0 +1,489 @@
+[
+  {
+    "id": "html-001",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "html",
+    "question": "HTML5에서 문서의 제목과 문자 인코딩 정보를 설정할 때 사용하는 태그는 무엇인가요?",
+    "options": [
+      "<head>",
+      "<body>",
+      "<meta>",
+      "<title>"
+    ],
+    "correctAnswer": 0,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 5,
+    "tags": [
+      "html5",
+      "메타데이터",
+      "기초"
+    ]
+  },
+  {
+    "id": "html-002",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "html",
+    "question": "다음 중 시맨틱 HTML 태그가 아닌 것은 무엇인가요?",
+    "options": [
+      "<article>",
+      "<section>",
+      "<div>",
+      "<header>"
+    ],
+    "correctAnswer": 2,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 5,
+    "tags": [
+      "시맨틱",
+      "html",
+      "웹표준"
+    ]
+  },
+  {
+    "id": "html-003",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "html",
+    "question": "시맨틱 태그를 사용하는 것이 접근성과 SEO 측면에서 어떤 장점이 있나요?",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "시맨틱 태그는 브라우저와 검색 엔진이 콘텐츠의 구조를 이해하기 쉽게 하여 SEO를 향상시키고, 스크린 리더 사용자의 접근성을 높여줍니다.",
+    "requiredKeywords": [
+      "접근성",
+      "SEO",
+      "구조적 의미"
+    ],
+    "points": 10,
+    "tags": [
+      "시맨틱",
+      "접근성",
+      "SEO"
+    ]
+  },
+  {
+    "id": "html-004",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "html",
+    "question": "HTML 폼을 제출할 때 사용자 입력의 유효성을 검사하는 방법을 설명하고, 실무에서 자바스크립트로 이를 보완하는 이유를 설명하세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "HTML5는 required, pattern 등의 속성으로 기본적인 유효성 검사를 제공하지만, 복잡한 로직이나 비동기 검사에는 JavaScript를 추가로 사용합니다.",
+    "requiredKeywords": [
+      "유효성 검사",
+      "required",
+      "JavaScript 보완"
+    ],
+    "points": 15,
+    "tags": [
+      "폼",
+      "유효성검사",
+      "실무"
+    ]
+  },
+  {
+    "id": "html-005",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "html",
+    "question": "meta 태그 중 캐싱을 제어하는 데 사용되는 속성은 무엇인가요?",
+    "options": [
+      "http-equiv",
+      "charset",
+      "name",
+      "content"
+    ],
+    "correctAnswer": 0,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 10,
+    "tags": [
+      "meta",
+      "캐싱",
+      "성능"
+    ]
+  },
+  {
+    "id": "html-006",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "html",
+    "question": "템플릿 엔진에서 서버 사이드 렌더링(SSR) 시 SEO에 긍정적인 영향을 주는 이유는?",
+    "options": [
+      "렌더링 속도가 빨라서",
+      "검색 엔진이 HTML을 더 잘 파싱해서",
+      "자바스크립트가 필요 없어서",
+      "이미지가 자동 최적화되기 때문에"
+    ],
+    "correctAnswer": 1,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 15,
+    "tags": [
+      "SSR",
+      "템플릿엔진",
+      "SEO"
+    ]
+  },
+  {
+    "id": "html-007",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "html",
+    "question": "HTML에서 웹 표준을 고려하여 크로스 브라우징 호환성을 높이기 위한 실무 전략을 설명하세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "HTML5 표준 태그를 사용하고, 벤더 프리픽스를 피하며, 필수 폴리필을 도입하는 것이 핵심입니다.",
+    "requiredKeywords": [
+      "웹표준",
+      "크로스브라우징",
+      "폴리필"
+    ],
+    "points": 15,
+    "tags": [
+      "웹표준",
+      "크로스브라우징",
+      "실무"
+    ]
+  },
+  {
+    "id": "html-008",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "html",
+    "question": "컴포넌트 기반의 프론트엔드 개발 환경에서 HTML 구조를 효율적으로 설계하는 방법과 그 이유를 설명하세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "재사용성과 유지보수성을 고려해 시맨틱 태그를 기반으로 컴포넌트를 작게 나누고, 명확한 책임을 갖도록 구조화해야 합니다.",
+    "requiredKeywords": [
+      "컴포넌트",
+      "시맨틱",
+      "재사용성"
+    ],
+    "points": 20,
+    "tags": [
+      "컴포넌트설계",
+      "HTML구조",
+      "프론트엔드실무"
+    ]
+  },
+  {
+    "id": "js-001",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "javascript",
+    "question": "자바스크립트에서 변수를 선언할 수 있는 키워드가 아닌 것은?",
+    "options": [
+      "var",
+      "let",
+      "const",
+      "define"
+    ],
+    "correctAnswer": 3,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 5,
+    "tags": [
+      "변수",
+      "기초문법"
+    ]
+  },
+  {
+    "id": "js-002",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "javascript",
+    "question": "다음 중 화살표 함수의 올바른 문법은?",
+    "options": [
+      "function =>() {}",
+      "() -> {}",
+      "() => {}",
+      "arrow() {}"
+    ],
+    "correctAnswer": 2,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 5,
+    "tags": [
+      "화살표함수",
+      "ES6",
+      "기초"
+    ]
+  },
+  {
+    "id": "js-003",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "javascript",
+    "question": "`const`로 선언된 배열에 대해 push()를 호출하면 어떤 일이 발생하나요?",
+    "options": [
+      "오류가 발생한다",
+      "배열에 요소가 추가된다",
+      "배열이 재정의된다",
+      "const는 배열에 사용할 수 없다"
+    ],
+    "correctAnswer": 1,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 10,
+    "tags": [
+      "const",
+      "배열",
+      "참조타입"
+    ]
+  },
+  {
+    "id": "js-004",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "easy",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "javascript",
+    "question": "`let`과 `var`의 차이점을 설명해주세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "`let`은 블록 스코프를 가지며 호이스팅 시 초기화되지 않지만, `var`는 함수 스코프를 가지며 undefined로 초기화됩니다.",
+    "requiredKeywords": [
+      "스코프",
+      "호이스팅"
+    ],
+    "points": 10,
+    "tags": [
+      "변수",
+      "let",
+      "var"
+    ]
+  },
+  {
+    "id": "js-005",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "javascript",
+    "question": "자바스크립트에서 비동기 처리를 위해 Promise를 사용하는 이유와 장점을 설명해주세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "Promise는 콜백 지옥을 방지하고, 체이닝을 통해 비동기 로직을 더 명확하고 예측 가능하게 만듭니다.",
+    "requiredKeywords": [
+      "비동기",
+      "콜백지옥",
+      "체이닝"
+    ],
+    "points": 15,
+    "tags": [
+      "비동기",
+      "Promise"
+    ]
+  },
+  {
+    "id": "js-006",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "junior",
+    "field": "common",
+    "category": "javascript",
+    "question": "`this` 키워드가 화살표 함수와 일반 함수에서 다르게 동작하는 이유를 설명해주세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "화살표 함수는 자신만의 `this`를 가지지 않고 외부 스코프의 `this`를 참조합니다. 일반 함수는 호출된 객체에 따라 `this`가 결정됩니다.",
+    "requiredKeywords": [
+      "화살표 함수",
+      "this",
+      "스코프"
+    ],
+    "points": 20,
+    "tags": [
+      "this",
+      "함수",
+      "스코프"
+    ]
+  },
+  {
+    "id": "js-007",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "javascript",
+    "question": "다음 중 클로저(Closure)를 설명하는 올바른 문장은?",
+    "options": [
+      "클로저는 객체 안에 정의된 함수이다.",
+      "클로저는 클래스에서만 사용된다.",
+      "클로저는 외부 함수의 변수를 기억하는 내부 함수이다.",
+      "클로저는 비동기 함수와 관련된 개념이다."
+    ],
+    "correctAnswer": 2,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 10,
+    "tags": [
+      "클로저",
+      "함수",
+      "고급개념"
+    ]
+  },
+  {
+    "id": "js-008",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "javascript",
+    "question": "다음 중 `event delegation`의 장점으로 옳지 않은 것은?",
+    "options": [
+      "메모리 사용 감소",
+      "동적으로 추가된 요소에 이벤트 적용 가능",
+      "모든 요소에 각각 이벤트 리스너 필요",
+      "이벤트 핸들링 중앙화 가능"
+    ],
+    "correctAnswer": 2,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 10,
+    "tags": [
+      "이벤트 위임",
+      "DOM",
+      "성능"
+    ]
+  },
+  {
+    "id": "js-009",
+    "type": "technical",
+    "format": "multiple-choice",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "javascript",
+    "question": "자바스크립트에서 `Object.create(null)`로 객체를 생성할 때의 특징은?",
+    "options": [
+      "`__proto__`가 존재한다",
+      "프로토타입 체인이 연결된다",
+      "`toString()` 메서드를 사용할 수 있다",
+      "`Object.prototype`이 없는 완전한 빈 객체가 생성된다"
+    ],
+    "correctAnswer": 3,
+    "correctAnswerText": "",
+    "requiredKeywords": [],
+    "points": 15,
+    "tags": [
+      "객체",
+      "프로토타입",
+      "고급"
+    ]
+  },
+  {
+    "id": "js-010",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "medium",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "javascript",
+    "question": "`async/await` 구문을 사용할 때 예외 처리를 어떻게 구현하며, 어떤 장점이 있는지 설명해주세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "`try/catch` 블록을 활용해 예외 처리를 하며, 가독성이 높고 동기 코드처럼 작성할 수 있다는 장점이 있습니다.",
+    "requiredKeywords": [
+      "try/catch",
+      "예외 처리",
+      "가독성"
+    ],
+    "points": 15,
+    "tags": [
+      "비동기",
+      "async",
+      "에러핸들링"
+    ]
+  },
+  {
+    "id": "js-011",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "javascript",
+    "question": "GC(Garbage Collection)가 자바스크립트 메모리 관리에서 어떻게 작동하는지 설명하고, 메모리 누수를 방지하기 위한 전략을 제시해주세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "자바스크립트는 도달할 수 없는 객체를 자동으로 제거하며, 이벤트 리스너 정리, 클로저 주의, 타이머 해제 등으로 메모리 누수를 방지할 수 있습니다.",
+    "requiredKeywords": [
+      "도달 가능성",
+      "메모리 누수",
+      "이벤트 정리"
+    ],
+    "points": 20,
+    "tags": [
+      "GC",
+      "메모리관리",
+      "성능최적화"
+    ]
+  },
+  {
+    "id": "js-012",
+    "type": "technical",
+    "format": "essay",
+    "difficulty": "hard",
+    "experienceLevel": "senior",
+    "field": "common",
+    "category": "javascript",
+    "question": "웹 애플리케이션에서 렌더링 성능을 개선하기 위한 JavaScript 기반의 전략을 설명해주세요.",
+    "options": [],
+    "correctAnswer": "",
+    "correctAnswerText": "requestAnimationFrame 사용, 불필요한 DOM 조작 최소화, 디바운싱/스로틀링 기법 활용 등이 있습니다.",
+    "requiredKeywords": [
+      "렌더링",
+      "requestAnimationFrame",
+      "디바운스"
+    ],
+    "points": 20,
+    "tags": [
+      "성능",
+      "렌더링최적화",
+      "프론트엔드"
+    ]
+  }
+]
