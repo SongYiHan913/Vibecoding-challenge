@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "온라인 면접 질문 스키마",
+  "description": "온라인 면접 시스템에서 사용할 질문의 JSON 스키마",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "type",
+      "format",
+      "difficulty",
+      "experienceLevel",
+      "question",
+      "points"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "질문의 고유 식별자 (UUID 또는 unique string)"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["technical", "personality", "problem-solving"],
+        "description": "질문 유형 - 기술/인성/문제해결능력"
+      },
+      "format": {
+        "type": "string",
+        "enum": ["multiple-choice", "essay"],
+        "description": "질문 형식 - 4지선다/서술형"
+      },
+      "difficulty": {
+        "type": "string",
+        "enum": ["easy", "medium", "hard"],
+        "description": "난이도 - 쉬움/보통/어려움"
+      },
+      "experienceLevel": {
+        "type": "string",
+        "enum": ["junior", "senior"],
+        "description": "대상 경력 수준 - 주니어(5년 이하)/시니어(5년 이상)"
+      },
+      "field": {
+        "type": "string",
+        "enum": ["java", "csharp", "common"],
+        "description": "기술 분야 - Java/C#/공통(HTML,JS). 기술 질문에만 해당"
+      },
+      "category": {
+        "type": "string",
+        "enum": ["java", "mariadb", "csharp", "mssql", "html", "javascript", "personality", "problem-solving"],
+        "description": "세부 카테고리"
+      },
+      "question": {
+        "type": "string",
+        "description": "질문 내용"
+      },
+      "options": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 4,
+        "maxItems": 4,
+        "description": "4지선다 선택지 (multiple-choice 형식인 경우 필수)"
+      },
+      "correctAnswer": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 3,
+        "description": "정답 번호 (0-3, multiple-choice 형식인 경우 필수)"
+      },
+      "correctAnswerText": {
+        "type": "string",
+        "description": "모범 답안 문장 (essay 형식인 경우 필수)"
+      },
+      "requiredKeywords": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "필수 포함 키워드 배열 (essay 형식인 경우 필수)"
+      },
+      "points": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "문제 배점"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "검색 및 분류를 위한 태그 (선택사항)"
+      },
+      "explanation": {
+        "type": "string",
+        "description": "해설 또는 참고사항 (선택사항)"
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "format": { "const": "multiple-choice" }
+          }
+        },
+        "then": {
+          "required": ["options", "correctAnswer"]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "format": { "const": "essay" }
+          }
+        },
+        "then": {
+          "required": ["correctAnswerText", "requiredKeywords"]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "type": { "const": "technical" }
+          }
+        },
+        "then": {
+          "required": ["field", "category"]
+        }
+      }
+    ]
+  }
+} 
