@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { performAutoEvaluation, performTestCompletionEvaluation } = require('../utils/evaluation');
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // 평가 생성 (관리자만)
-router.post('/', requireAdmin, (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const { candidateId, testSessionId } = req.body;
   const evaluatorId = req.user.userId;
 
@@ -20,193 +21,67 @@ router.post('/', requireAdmin, (req, res) => {
     });
   }
 
-  // 테스트 세션과 답안 조회
-  db.get(
-    `SELECT ts.*, u.applied_field, u.experience 
-     FROM test_sessions ts 
-     JOIN users u ON ts.candidate_id = u.id 
-     WHERE ts.id = ? AND ts.candidate_id = ? AND ts.status = 'completed'`,
-    [testSessionId, candidateId],
-    (err, session) => {
-      if (err) {
-        console.error('테스트 세션 조회 오류:', err);
-        return res.status(500).json({
-          success: false,
-          message: '서버 오류가 발생했습니다.'
-        });
-      }
+  try {
+    // 테스트 세션과 답안 조회
+    const session = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT ts.*, u.applied_field, u.experience 
+         FROM test_sessions ts 
+         JOIN users u ON ts.candidate_id = u.id 
+         WHERE ts.id = ? AND ts.candidate_id = ? AND ts.status = 'completed'`,
+        [testSessionId, candidateId],
+        (err, session) => {
+          if (err) reject(err);
+          else resolve(session);
+        }
+      );
+    });
 
-      if (!session) {
-        return res.status(404).json({
-          success: false,
-          message: '완료된 테스트 세션을 찾을 수 없습니다.'
-        });
-      }
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: '완료된 테스트 세션을 찾을 수 없습니다.'
+      });
+    }
 
-      // 이미 평가가 있는지 확인
+    // 이미 평가가 있는지 확인
+    const existingEvaluation = await new Promise((resolve, reject) => {
       db.get(
         'SELECT id FROM evaluations WHERE test_session_id = ?',
         [testSessionId],
-        (err, existingEvaluation) => {
-          if (err) {
-            console.error('기존 평가 확인 오류:', err);
-            return res.status(500).json({
-              success: false,
-              message: '서버 오류가 발생했습니다.'
-            });
-          }
-
-          if (existingEvaluation) {
-            return res.status(400).json({
-              success: false,
-              message: '이미 평가가 완료된 테스트입니다.'
-            });
-          }
-
-          // 자동 평가 수행
-          performAutoEvaluation(session, evaluatorId, (err, evaluationResult) => {
-            if (err) {
-              console.error('자동 평가 오류:', err);
-              return res.status(500).json({
-                success: false,
-                message: '평가 처리 중 오류가 발생했습니다.'
-              });
-            }
-
-            res.status(201).json({
-              success: true,
-              message: '평가가 완료되었습니다.',
-              data: evaluationResult
-            });
-          });
+        (err, evaluation) => {
+          if (err) reject(err);
+          else resolve(evaluation);
         }
       );
+    });
+
+    if (existingEvaluation) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 평가가 완료된 테스트입니다.'
+      });
     }
-  );
+
+    // 자동 평가 수행
+    const evaluationResult = await performAutoEvaluation(session, evaluatorId);
+    
+    res.status(201).json({
+      success: true,
+      message: '평가가 완료되었습니다.',
+      data: evaluationResult
+    });
+
+  } catch (error) {
+    console.error('평가 처리 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '평가 처리 중 오류가 발생했습니다.'
+    });
+  }
 });
 
-// 자동 평가 함수
-function performAutoEvaluation(session, evaluatorId, callback) {
-  const questions = JSON.parse(session.questions);
-  const answers = JSON.parse(session.answers || '{}');
-  
-  let technicalScore = 0;
-  let personalityScore = 0;
-  let problemSolvingScore = 0;
-  let maxTechnicalScore = 0;
-  let maxPersonalityScore = 0;
-  let maxProblemSolvingScore = 0;
 
-  const detailedResults = [];
-
-  // 각 질문별 채점
-  questions.forEach(question => {
-    const userAnswer = answers[question.id];
-    let score = 0;
-    let maxScore = question.points;
-
-    if (userAnswer) {
-      if (question.format === 'multiple-choice') {
-        // 객관식 채점
-        if (userAnswer.answer === question.correct_answer) {
-          score = maxScore;
-        }
-      } else if (question.format === 'essay') {
-        // 주관식 채점 (키워드 기반)
-        if (question.required_keywords && userAnswer.answerText) {
-          const keywords = JSON.parse(question.required_keywords);
-          const answerText = userAnswer.answerText.toLowerCase();
-          const matchedKeywords = keywords.filter(keyword => 
-            answerText.includes(keyword.toLowerCase())
-          );
-          score = Math.round((matchedKeywords.length / keywords.length) * maxScore);
-        }
-      }
-    }
-
-    // 타입별 점수 집계
-    switch (question.type) {
-      case 'technical':
-        technicalScore += score;
-        maxTechnicalScore += maxScore;
-        break;
-      case 'personality':
-        personalityScore += score;
-        maxPersonalityScore += maxScore;
-        break;
-      case 'problem-solving':
-        problemSolvingScore += score;
-        maxProblemSolvingScore += maxScore;
-        break;
-    }
-
-    detailedResults.push({
-      questionId: question.id,
-      type: question.type,
-      question: question.question,
-      userAnswer: userAnswer || null,
-      correctAnswer: question.correct_answer || question.correct_answer_text,
-      score,
-      maxScore,
-      points: question.points
-    });
-  });
-
-  // 백분율 점수 계산
-  const technicalPercent = maxTechnicalScore > 0 ? (technicalScore / maxTechnicalScore) * 100 : 0;
-  const personalityPercent = maxPersonalityScore > 0 ? (personalityScore / maxPersonalityScore) * 100 : 0;
-  const problemSolvingPercent = maxProblemSolvingScore > 0 ? (problemSolvingScore / maxProblemSolvingScore) * 100 : 0;
-
-  // 가중치 적용하여 총점 계산 (기술 40%, 인성 20%, 문제해결 40%)
-  const totalScore = (technicalPercent * 0.4) + (personalityPercent * 0.2) + (problemSolvingPercent * 0.4);
-
-  const evaluationId = uuidv4();
-
-  // 평가 결과 저장
-  db.run(
-    `INSERT INTO evaluations (
-      id, candidate_id, test_session_id, technical_score, personality_score, 
-      problem_solving_score, total_score, detailed_results, evaluated_at, 
-      evaluated_by, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, 'completed', datetime('now'), datetime('now'))`,
-    [
-      evaluationId, session.candidate_id, session.id,
-      Math.round(technicalPercent * 100) / 100,
-      Math.round(personalityPercent * 100) / 100,
-      Math.round(problemSolvingPercent * 100) / 100,
-      Math.round(totalScore * 100) / 100,
-      JSON.stringify(detailedResults),
-      evaluatorId
-    ],
-    function(err) {
-      if (err) {
-        return callback(err);
-      }
-
-      // 지원자 상태 업데이트
-      db.run(
-        'UPDATE users SET status = "evaluated", updated_at = datetime("now") WHERE id = ?',
-        [session.candidate_id],
-        (updateErr) => {
-          if (updateErr) {
-            console.error('지원자 상태 업데이트 오류:', updateErr);
-          }
-
-          callback(null, {
-            id: evaluationId,
-            candidateId: session.candidate_id,
-            testSessionId: session.id,
-            technicalScore: Math.round(technicalPercent * 100) / 100,
-            personalityScore: Math.round(personalityPercent * 100) / 100,
-            problemSolvingScore: Math.round(problemSolvingPercent * 100) / 100,
-            totalScore: Math.round(totalScore * 100) / 100,
-            status: 'completed'
-          });
-        }
-      );
-    }
-  );
-}
 
 // 평가 목록 조회 (관리자만)
 router.get('/', requireAdmin, (req, res) => {

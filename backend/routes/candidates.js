@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../config/database');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireCandidate } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -105,7 +105,69 @@ router.get('/', requireAdmin, (req, res) => {
   });
 });
 
-// 특정 지원자 조회
+// 지원자 본인 정보 조회 (지원자 전용)
+router.get('/me', requireCandidate, (req, res) => {
+  const candidateId = req.user.userId;
+
+  const query = `
+    SELECT u.*, ts.id as test_session_id, ts.status as test_status, 
+           ts.started_at, ts.completed_at, ts.terminated_at, ts.termination_reason,
+           e.total_score, e.technical_score, e.personality_score, e.problem_solving_score
+    FROM users u
+    LEFT JOIN test_sessions ts ON u.test_session_id = ts.id
+    LEFT JOIN evaluations e ON ts.id = e.test_session_id
+    WHERE u.id = ? AND u.role = 'candidate'
+  `;
+
+  db.get(query, [candidateId], (err, candidate) => {
+    if (err) {
+      console.error('지원자 조회 오류:', err);
+      return res.status(500).json({
+        success: false,
+        message: '서버 오류가 발생했습니다.'
+      });
+    }
+
+    if (!candidate) {
+      return res.status(404).json({
+        success: false,
+        message: '지원자를 찾을 수 없습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: candidate.id,
+        email: candidate.email,
+        name: candidate.name,
+        phone: candidate.phone,
+        experience: candidate.experience,
+        applied_field: candidate.applied_field,
+        status: candidate.status,
+        test_session_id: candidate.test_session_id,
+        testSession: candidate.test_session_id ? {
+          id: candidate.test_session_id,
+          status: candidate.test_status,
+          startedAt: candidate.started_at ? new Date(candidate.started_at) : null,
+          completedAt: candidate.completed_at ? new Date(candidate.completed_at) : null,
+          terminatedAt: candidate.terminated_at ? new Date(candidate.terminated_at) : null,
+          termination_reason: candidate.termination_reason
+        } : null,
+        evaluation: candidate.total_score !== null ? {
+          totalScore: candidate.total_score,
+          technicalScore: candidate.technical_score,
+          personalityScore: candidate.personality_score,
+          problemSolvingScore: candidate.problem_solving_score
+        } : null,
+        createdAt: new Date(candidate.created_at),
+        updatedAt: new Date(candidate.updated_at)
+      }
+    });
+  });
+});
+
+// 특정 지원자 조회 (관리자 전용)
 router.get('/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
 

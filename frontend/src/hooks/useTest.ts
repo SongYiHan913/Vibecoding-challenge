@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useTestStore } from '@/store/testStore';
+import { useAuthStore } from '@/store/authStore';
 import { testAPI } from '@/utils/api';
 import { TEST_CONFIG, ERROR_MESSAGES } from '@/constants';
 
@@ -27,56 +28,103 @@ export const useTest = () => {
     resetTest,
   } = useTestStore();
 
+  const { token } = useAuthStore();
+
   // 테스트 시작
-  const handleStartTest = async (candidateId: string) => {
+  const handleStartTest = async (candidateId: string): Promise<{ success: boolean; error?: string }> => {
+    setSubmitting(true);
     try {
-             const response = await testAPI.startTest(candidateId);
-       if (response.success && response.data) {
-         const { session, questions } = response.data as any;
-         startTest(session, questions);
+      const response = await fetch('/api/test-sessions/start-for-candidate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        startTest(result.data.sessionId, result.data.questions);
         return { success: true };
       } else {
-        return { success: false, error: response.error };
+        return { success: false, error: result.message || '테스트 시작 실패' };
       }
     } catch (error: any) {
-      return { success: false, error: error.message };
+      console.error('테스트 시작 오류:', error);
+      return { success: false, error: '네트워크 오류가 발생했습니다.' };
+    } finally {
+      setSubmitting(false);
     }
   };
 
   // 답안 제출
-  const handleSubmitAnswer = async (questionId: string, answer: string | number) => {
-    if (!currentSession || isSubmitting) return;
+  const handleSubmitAnswer = async (questionId: string, answer: string | number): Promise<{ success: boolean; error?: string }> => {
+    if (!currentSession || isSubmitting) {
+      return { success: false, error: '활성 세션이 없거나 이미 제출 중입니다.' };
+    }
 
     setSubmitting(true);
     try {
-      // 로컬 상태 업데이트
-      submitAnswer(questionId, answer);
+      const answerData = typeof answer === 'number' 
+        ? { questionId, answer } 
+        : { questionId, answerText: answer };
 
-      // 서버에 답안 전송
-      const response = await testAPI.submitAnswer(currentSession.id, questionId, answer);
-      if (!response.success) {
-        console.error('Failed to submit answer:', response.error);
+      const response = await fetch(`/api/test-sessions/${currentSession.id}/answers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(answerData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        submitAnswer(questionId, answer);
+        return { success: true };
+      } else {
+        return { success: false, error: result.message || '답안 저장 실패' };
       }
-
-      return { success: true };
     } catch (error: any) {
       console.error('Submit answer error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: '네트워크 오류가 발생했습니다.' };
     } finally {
       setSubmitting(false);
     }
   };
 
   // 테스트 완료
-  const handleFinishTest = async () => {
-    if (!currentSession) return;
+  const handleFinishTest = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!currentSession) {
+      return { success: false, error: '활성 세션이 없습니다.' };
+    }
 
+    setSubmitting(true);
     try {
-      const response = await testAPI.finishTest(currentSession.id);
-      finishTest();
-      return { success: true, data: response.data };
+      const response = await fetch(`/api/test-sessions/${currentSession.id}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: 'completed' }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        finishTest();
+        return { success: true };
+      } else {
+        return { success: false, error: result.message || '테스트 완료 실패' };
+      }
     } catch (error: any) {
-      return { success: false, error: error.message };
+      console.error('테스트 완료 오류:', error);
+      return { success: false, error: '네트워크 오류가 발생했습니다.' };
+    } finally {
+      setSubmitting(false);
     }
   };
 
