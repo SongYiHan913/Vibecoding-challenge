@@ -65,7 +65,8 @@ export interface TestSession {
 
 export interface TestAnswer {
   questionId: string;
-  answer: string | number; // 선택형은 번호, 서술형은 텍스트
+  answer?: string | number; // 선택형은 번호, 서술형은 텍스트
+  answerText?: string; // 서술형 답안용 필드 추가
   answeredAt: Date;
   timeTaken: number; // 답변에 소요된 시간 (초)
 }

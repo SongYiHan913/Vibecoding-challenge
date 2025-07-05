@@ -363,71 +363,191 @@ router.post('/generate-test', requireAdmin, (req, res) => {
     });
   }
 
-  // 질문 구성: 기술 5개, 인성 3개, 문제해결 2개 (총 10개)
-  const questionCounts = {
-    technical: 5,
-    personality: 3,
-    'problem-solving': 2
+  // 새로운 질문 구성: 총 25문제
+  // 기술 10개 (4지선다 6개 + 서술형 4개), 인성 5개 (서술형), 문제해결 10개 (서술형)
+  const questionConfig = {
+    technical: {
+      total: 10,
+      'multiple-choice': 6,
+      essay: 4
+    },
+    personality: {
+      total: 5,
+      essay: 5
+    },
+    'problem-solving': {
+      total: 10,
+      essay: 10
+    }
+  };
+
+  // 난이도 비율: 쉬움 30%, 보통 50%, 어려움 20%
+  const difficultyDistribution = {
+    easy: 0.3,
+    medium: 0.5,
+    hard: 0.2
   };
 
   const selectedQuestions = [];
   let completed = 0;
-  const totalTypes = Object.keys(questionCounts).length;
+  const totalTypes = Object.keys(questionConfig).length;
 
-  Object.entries(questionCounts).forEach(([type, count]) => {
-    let query;
-    const params = [type, experienceLevel];
+  // 분야별 순서로 질문 선택: 기술 → 인성 → 문제해결
+  const processQuestionType = (type, config) => {
+    const promises = [];
 
     if (type === 'technical') {
-      // 기술 질문은 지원 분야에 맞게
-      query = 'SELECT * FROM questions WHERE type = ? AND experience_level = ? AND (field = ? OR field = "common") ORDER BY RANDOM() LIMIT ?';
-      params.push(appliedField, count);
+      // 기술 질문: 4지선다와 서술형 분리해서 선택
+      const mcCount = config['multiple-choice'];
+      const essayCount = config.essay;
+
+      // 4지선다 기술 질문
+      promises.push(new Promise((resolve, reject) => {
+        selectQuestionsByDifficulty(type, 'multiple-choice', appliedField, experienceLevel, mcCount, difficultyDistribution)
+          .then(questions => {
+            selectedQuestions.push(...questions.map(q => ({ ...q, questionOrder: selectedQuestions.length + 1 })));
+            resolve();
+          })
+          .catch(reject);
+      }));
+
+      // 서술형 기술 질문
+      promises.push(new Promise((resolve, reject) => {
+        selectQuestionsByDifficulty(type, 'essay', appliedField, experienceLevel, essayCount, difficultyDistribution)
+          .then(questions => {
+            selectedQuestions.push(...questions.map(q => ({ ...q, questionOrder: selectedQuestions.length + 1 })));
+            resolve();
+          })
+          .catch(reject);
+      }));
+
     } else {
-      // 인성, 문제해결 질문은 공통
-      query = 'SELECT * FROM questions WHERE type = ? AND experience_level = ? AND (field = "common" OR field IS NULL) ORDER BY RANDOM() LIMIT ?';
-      params.push(count);
+      // 인성, 문제해결: 서술형만
+      promises.push(new Promise((resolve, reject) => {
+        selectQuestionsByDifficulty(type, 'essay', null, experienceLevel, config.total, difficultyDistribution)
+          .then(questions => {
+            selectedQuestions.push(...questions.map(q => ({ ...q, questionOrder: selectedQuestions.length + 1 })));
+            resolve();
+          })
+          .catch(reject);
+      }));
     }
 
-    db.all(query, params, (err, questions) => {
-      if (err) {
-        console.error(`${type} 질문 조회 오류:`, err);
-        return res.status(500).json({
-          success: false,
-          message: '질문 생성 중 오류가 발생했습니다.'
-        });
-      }
+    return Promise.all(promises);
+  };
 
-      selectedQuestions.push(...questions);
-      completed++;
+  // 순차적으로 분야별 질문 선택
+  const selectAllQuestions = async () => {
+    try {
+      // 1. 기술 질문 선택
+      await processQuestionType('technical', questionConfig.technical);
+      
+      // 2. 인성 질문 선택
+      await processQuestionType('personality', questionConfig.personality);
+      
+      // 3. 문제해결 질문 선택
+      await processQuestionType('problem-solving', questionConfig['problem-solving']);
 
-      if (completed === totalTypes) {
-        // 모든 타입의 질문 수집 완료
-        res.json({
-          success: true,
-          data: {
-            questions: selectedQuestions.map(question => ({
-              id: question.id,
-              type: question.type,
-              format: question.format,
-              difficulty: question.difficulty,
-              experienceLevel: question.experience_level,
-              field: question.field,
-              category: question.category,
-              question: question.question,
-              options: question.options ? JSON.parse(question.options) : null,
-              correctAnswer: question.correct_answer,
-              correctAnswerText: question.correct_answer_text,
-              requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
-              points: question.points,
-              createdAt: new Date(question.created_at),
-              updatedAt: new Date(question.updated_at)
-            })),
-            totalQuestions: selectedQuestions.length
+      // 질문 순서 정렬
+      selectedQuestions.sort((a, b) => a.questionOrder - b.questionOrder);
+
+      res.json({
+        success: true,
+        data: {
+          questions: selectedQuestions.map(question => ({
+            id: question.id,
+            type: question.type,
+            format: question.format,
+            difficulty: question.difficulty,
+            experienceLevel: question.experience_level,
+            field: question.field,
+            category: question.category,
+            question: question.question,
+            options: question.options ? JSON.parse(question.options) : null,
+            correctAnswer: question.correct_answer,
+            correctAnswerText: question.correct_answer_text,
+            requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+            points: question.points,
+            createdAt: new Date(question.created_at),
+            updatedAt: new Date(question.updated_at)
+          })),
+          totalQuestions: selectedQuestions.length,
+          distribution: {
+            technical: questionConfig.technical.total,
+            personality: questionConfig.personality.total,
+            problemSolving: questionConfig['problem-solving'].total,
+            total: 25
           }
-        });
+        }
+      });
+
+    } catch (error) {
+      console.error('질문 선택 오류:', error);
+      res.status(500).json({
+        success: false,
+        message: '질문 생성 중 오류가 발생했습니다.',
+        error: error.message
+      });
+    }
+  };
+
+  selectAllQuestions();
+});
+
+// 난이도별 질문 선택 헬퍼 함수
+function selectQuestionsByDifficulty(type, format, field, experienceLevel, totalCount, difficultyDist) {
+  return new Promise((resolve, reject) => {
+    // 난이도별 개수 계산
+    const easyCount = Math.round(totalCount * difficultyDist.easy);
+    const mediumCount = Math.round(totalCount * difficultyDist.medium);
+    const hardCount = totalCount - easyCount - mediumCount; // 나머지
+
+    const difficulties = [
+      { level: 'easy', count: easyCount },
+      { level: 'medium', count: mediumCount },
+      { level: 'hard', count: hardCount }
+    ];
+
+    const selectedQuestions = [];
+    let completedDifficulties = 0;
+
+    difficulties.forEach(({ level, count }) => {
+      if (count === 0) {
+        completedDifficulties++;
+        if (completedDifficulties === difficulties.length) {
+          resolve(selectedQuestions);
+        }
+        return;
       }
+
+      let query = 'SELECT * FROM questions WHERE type = ? AND format = ? AND difficulty = ? AND experience_level = ?';
+      const params = [type, format, level, experienceLevel];
+
+      if (type === 'technical' && field) {
+        query += ' AND (field = ? OR field = "common")';
+        params.push(field);
+      } else if (type !== 'technical') {
+        query += ' AND (field = "common" OR field IS NULL)';
+      }
+
+      query += ' ORDER BY RANDOM() LIMIT ?';
+      params.push(count);
+
+      db.all(query, params, (err, questions) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        selectedQuestions.push(...questions);
+        completedDifficulties++;
+
+        if (completedDifficulties === difficulties.length) {
+          resolve(selectedQuestions);
+        }
+      });
     });
   });
-});
+}
 
 module.exports = router; 
