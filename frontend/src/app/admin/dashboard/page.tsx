@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
-import { dashboardAPI, userAPI } from '@/utils/api';
+import { dashboardAPI, userAPI, questionAPI } from '@/utils/api';
 import { ROUTES } from '@/constants';
 
 interface DashboardStats {
@@ -35,10 +35,12 @@ export default function AdminDashboard() {
       // 지원자 수 조회
       const candidatesResponse = await userAPI.getCandidates({ page: 1, limit: 1 });
       
-      // 임시 데이터 (실제로는 각각의 API를 호출해야 함)
+      // 질문 수 조회
+      const questionsResponse = await questionAPI.getQuestions({ page: 1, limit: 1 });
+      
       setStats({
-        totalCandidates: candidatesResponse.data?.total || 0,
-        totalQuestions: 0, // 추후 questionAPI에서 조회
+        totalCandidates: (candidatesResponse.data as any)?.pagination?.total || 0,
+        totalQuestions: (questionsResponse.data as any)?.pagination?.total || 0,
         completedTests: 0, // 추후 testAPI에서 조회
         pendingEvaluations: 0, // 추후 evaluationAPI에서 조회
       });
@@ -153,7 +155,7 @@ export default function AdminDashboard() {
       {/* 빠른 액션 */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">빠른 액션</h2>
+          <h2 className="text-lg font-semibold text-gray-900">빠른 액션</h2>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -190,7 +192,7 @@ export default function AdminDashboard() {
       {/* 최근 활동 */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">최근 활동</h2>
+          <h2 className="text-lg font-semibold text-gray-900" >최근 활동</h2>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -212,7 +214,7 @@ export default function AdminDashboard() {
       {/* 시스템 정보 */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">시스템 정보</h2>
+          <h2 className="text-lg font-semibold text-gray-900">시스템 정보</h2>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

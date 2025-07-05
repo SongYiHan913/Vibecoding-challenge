@@ -64,7 +64,7 @@ export default function QuestionDetailModal({
       case 'senior':
         return '시니어 (5년 이상)';
       default:
-        return level;
+        return level || '정보 없음';
     }
   };
 
@@ -82,7 +82,7 @@ export default function QuestionDetailModal({
       title="질문 상세 정보"
       size="lg"
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* 기본 정보 */}
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -170,28 +170,32 @@ export default function QuestionDetailModal({
               선택지
             </label>
             <div className="space-y-2">
-              {question.options.map((option, index) => (
-                <div
-                  key={index}
-                  className={`px-4 py-3 rounded-md text-gray-900 ${
-                    question.correctAnswer === index
-                      ? 'bg-green-50 border-2 border-green-200'
-                      : 'bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <span className="font-medium text-gray-700 mr-2">
-                      {index + 1}.
-                    </span>
-                    <span className="flex-1">{option}</span>
-                    {question.correctAnswer === index && (
-                      <span className="text-green-600 font-medium text-sm">
-                        ✓ 정답
+              {question.options.map((option, index) => {
+                const isCorrect = question.correctAnswer === index;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`px-4 py-3 rounded-md text-gray-900 ${
+                      isCorrect
+                        ? 'bg-green-50 border-2 border-green-200'
+                        : 'bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <span className="font-medium text-gray-900 mr-2">
+                        {index + 1}.
                       </span>
-                    )}
+                      <span className="flex-1">{option}</span>
+                      {isCorrect && (
+                        <span className="text-green-600 font-medium text-sm">
+                          ✓ 정답
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -204,7 +208,7 @@ export default function QuestionDetailModal({
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   모범 답안
                 </label>
-                <div className="px-4 py-3 bg-green-50 rounded-md whitespace-pre-wrap">
+                <div className="px-4 py-3 bg-green-50 rounded-md whitespace-pre-wrap text-gray-900">
                   {question.correctAnswerText}
                 </div>
               </div>

@@ -69,7 +69,7 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         className={cn(
-          'bg-white rounded-lg shadow-xl w-full',
+          'bg-white rounded-lg shadow-xl w-full max-h-[90vh] flex flex-col',
           sizeClasses[size]
         )}
       >
@@ -84,7 +84,7 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
           </div>
         )}
-        <div className={cn('p-6', !title && 'pt-8')}>
+        <div className={cn('p-6 overflow-y-auto flex-1', !title && 'pt-8')}>
           {!title && (
             <button
               onClick={onClose}

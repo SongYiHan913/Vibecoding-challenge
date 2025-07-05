@@ -100,9 +100,19 @@ router.get('/', (req, res) => {
         success: true,
         data: {
           questions: questions.map(question => ({
-            ...question,
+            id: question.id,
+            type: question.type,
+            format: question.format,
+            difficulty: question.difficulty,
+            experienceLevel: question.experience_level,
+            field: question.field,
+            category: question.category,
+            question: question.question,
             options: question.options ? JSON.parse(question.options) : null,
+            correctAnswer: question.correct_answer,
+            correctAnswerText: question.correct_answer_text,
             requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+            points: question.points,
             createdAt: new Date(question.created_at),
             updatedAt: new Date(question.updated_at)
           })),
@@ -295,9 +305,19 @@ router.get('/:id', (req, res) => {
     res.json({
       success: true,
       data: {
-        ...question,
+        id: question.id,
+        type: question.type,
+        format: question.format,
+        difficulty: question.difficulty,
+        experienceLevel: question.experience_level,
+        field: question.field,
+        category: question.category,
+        question: question.question,
         options: question.options ? JSON.parse(question.options) : null,
+        correctAnswer: question.correct_answer,
+        correctAnswerText: question.correct_answer_text,
         requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+        points: question.points,
         createdAt: new Date(question.created_at),
         updatedAt: new Date(question.updated_at)
       }
@@ -386,9 +406,21 @@ router.post('/generate-test', requireAdmin, (req, res) => {
           success: true,
           data: {
             questions: selectedQuestions.map(question => ({
-              ...question,
+              id: question.id,
+              type: question.type,
+              format: question.format,
+              difficulty: question.difficulty,
+              experienceLevel: question.experience_level,
+              field: question.field,
+              category: question.category,
+              question: question.question,
               options: question.options ? JSON.parse(question.options) : null,
-              requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null
+              correctAnswer: question.correct_answer,
+              correctAnswerText: question.correct_answer_text,
+              requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+              points: question.points,
+              createdAt: new Date(question.created_at),
+              updatedAt: new Date(question.updated_at)
             })),
             totalQuestions: selectedQuestions.length
           }
