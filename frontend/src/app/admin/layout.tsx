@@ -106,7 +106,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   href={ROUTES.ADMIN_RESULTS}
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                 >
-                  📋 평가 결과
+                  📋 채점 관리
                 </Link>
               </li>
             </ul>

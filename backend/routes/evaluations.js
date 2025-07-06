@@ -260,4 +260,187 @@ router.patch('/:id/notes', requireAdmin, (req, res) => {
   );
 });
 
+// 평가 점수 수정 (관리자만)
+router.patch('/:id/scores', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { detailedResults, notes, finalizeGrading = false } = req.body;
+  const evaluatorId = req.user.userId;
+
+  if (!detailedResults || !Array.isArray(detailedResults)) {
+    return res.status(400).json({
+      success: false,
+      message: '세부 평가 결과가 필요합니다.'
+    });
+  }
+
+  // 기존 평가 정보 조회
+  db.get(
+    'SELECT * FROM evaluations WHERE id = ?',
+    [id],
+    (err, evaluation) => {
+      if (err) {
+        console.error('평가 조회 오류:', err);
+        return res.status(500).json({
+          success: false,
+          message: '서버 오류가 발생했습니다.'
+        });
+      }
+
+      if (!evaluation) {
+        return res.status(404).json({
+          success: false,
+          message: '평가를 찾을 수 없습니다.'
+        });
+      }
+
+      // 기존 세부 결과 파싱
+      const existingResults = evaluation.detailed_results ? JSON.parse(evaluation.detailed_results) : [];
+      
+      // 점수 검증 및 계산
+      let technicalScore = 0;
+      let personalityScore = 0;
+      let problemSolvingScore = 0;
+      let technicalTotal = 0;
+      let personalityTotal = 0;
+      let problemSolvingTotal = 0;
+
+      // 각 문제별 점수 검증
+      for (const result of detailedResults) {
+        const { questionId, score, maxScore, type } = result;
+        
+        if (score > maxScore) {
+          return res.status(400).json({
+            success: false,
+            message: `문제 ${questionId}의 점수가 최대 점수를 초과했습니다. (${score}/${maxScore})`
+          });
+        }
+
+        if (score < 0) {
+          return res.status(400).json({
+            success: false,
+            message: `문제 ${questionId}의 점수는 0 이상이어야 합니다.`
+          });
+        }
+
+        // 타입별 점수 누적
+        if (type === 'technical') {
+          technicalScore += score;
+          technicalTotal += maxScore;
+        } else if (type === 'personality') {
+          personalityScore += score;
+          personalityTotal += maxScore;
+        } else if (type === 'problem-solving') {
+          problemSolvingScore += score;
+          problemSolvingTotal += maxScore;
+        }
+      }
+
+      // 백분율 계산
+      const technicalPercent = technicalTotal > 0 ? (technicalScore / technicalTotal) * 100 : 0;
+      const personalityPercent = personalityTotal > 0 ? (personalityScore / personalityTotal) * 100 : 0;
+      const problemSolvingPercent = problemSolvingTotal > 0 ? (problemSolvingScore / problemSolvingTotal) * 100 : 0;
+
+      // 전체 점수 계산 (가중 평균)
+      const TECHNICAL_WEIGHT = 0.4;
+      const PERSONALITY_WEIGHT = 0.3;
+      const PROBLEM_SOLVING_WEIGHT = 0.3;
+
+      const totalScore = 
+        (technicalPercent * TECHNICAL_WEIGHT) +
+        (personalityPercent * PERSONALITY_WEIGHT) +
+        (problemSolvingPercent * PROBLEM_SOLVING_WEIGHT);
+
+      // 평가 결과 업데이트
+      db.run(
+        `UPDATE evaluations SET 
+          technical_score = ?, 
+          personality_score = ?, 
+          problem_solving_score = ?, 
+          total_score = ?, 
+          detailed_results = ?, 
+          notes = ?, 
+          evaluated_by = ?, 
+          updated_at = datetime('now')
+        WHERE id = ?`,
+        [
+          Math.round(technicalPercent * 100) / 100,
+          Math.round(personalityPercent * 100) / 100,
+          Math.round(problemSolvingPercent * 100) / 100,
+          Math.round(totalScore * 100) / 100,
+          JSON.stringify(detailedResults),
+          notes || evaluation.notes,
+          evaluatorId,
+          id
+        ],
+        function(err) {
+          if (err) {
+            console.error('평가 점수 수정 오류:', err);
+            return res.status(500).json({
+              success: false,
+              message: '점수 수정 중 오류가 발생했습니다.'
+            });
+          }
+
+          if (this.changes === 0) {
+            return res.status(404).json({
+              success: false,
+              message: '평가를 찾을 수 없습니다.'
+            });
+          }
+
+          // 채점 완료 처리
+          if (finalizeGrading) {
+            // test_session 상태를 terminated로 변경
+            db.run(
+              `UPDATE test_sessions SET 
+                status = 'terminated', 
+                terminated_at = datetime('now'),
+                termination_reason = 'grading_completed',
+                updated_at = datetime('now')
+              WHERE id = ?`,
+              [evaluation.test_session_id],
+              function(err) {
+                if (err) {
+                  console.error('테스트 세션 상태 변경 오류:', err);
+                  return res.status(500).json({
+                    success: false,
+                    message: '채점 완료 처리 중 오류가 발생했습니다.'
+                  });
+                }
+
+                res.json({
+                  success: true,
+                  message: '채점이 완료되었습니다.',
+                  data: {
+                    technicalScore: Math.round(technicalPercent * 100) / 100,
+                    personalityScore: Math.round(personalityPercent * 100) / 100,
+                    problemSolvingScore: Math.round(problemSolvingPercent * 100) / 100,
+                    totalScore: Math.round(totalScore * 100) / 100,
+                    status: 'terminated',
+                    updatedAt: new Date()
+                  }
+                });
+              }
+            );
+          } else {
+            res.json({
+              success: true,
+              message: '평가 점수가 수정되었습니다.',
+              data: {
+                technicalScore: Math.round(technicalPercent * 100) / 100,
+                personalityScore: Math.round(personalityPercent * 100) / 100,
+                problemSolvingScore: Math.round(problemSolvingPercent * 100) / 100,
+                totalScore: Math.round(totalScore * 100) / 100,
+                updatedAt: new Date()
+              }
+            });
+          }
+        }
+      );
+    }
+  );
+});
+
+
+
 module.exports = router; 
