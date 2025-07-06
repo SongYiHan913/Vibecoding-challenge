@@ -67,10 +67,25 @@ export default function ResultsPage() {
   // URL 파라미터에서 필터 설정 읽기
   useEffect(() => {
     const filter = searchParams.get('filter');
+    
+    // 기존 필터 초기화
+    setCandidateNameFilter('');
+    setAppliedFieldFilter('');
+    
     if (filter === 'pending-evaluation') {
       setEvaluationFilter('pending');
       setStatusFilter('completed'); // 완료된 테스트 중에서 평가 대기인 것만
+    } else if (filter === 'completed-evaluation') {
+      setEvaluationFilter('completed');
+      setStatusFilter('completed'); // 완료된 테스트 중에서 평가 완료인 것만
+    } else {
+      // 필터가 없으면 모든 필터 초기화
+      setEvaluationFilter('');
+      setStatusFilter('');
     }
+    
+    // 첫 페이지로 이동
+    setPage(1);
   }, [searchParams]);
 
   useEffect(() => {
@@ -94,6 +109,17 @@ export default function ResultsPage() {
         ...(appliedFieldFilter && { appliedField: appliedFieldFilter }),
         ...(evaluationFilter && { evaluation: evaluationFilter })
       });
+
+      // 디버깅: 현재 필터 상태와 API 호출 파라미터 출력
+      console.log('🔍 현재 필터 상태:', {
+        statusFilter,
+        candidateNameFilter,
+        appliedFieldFilter,
+        evaluationFilter,
+        page,
+        pageSize
+      });
+      console.log('🌐 API 호출 URL:', `${API_ENDPOINTS.TEST_SESSIONS}/admin/list?${queryParams}`);
 
       const response = await fetch(`${API_ENDPOINTS.TEST_SESSIONS}/admin/list?${queryParams}`, {
         headers: {
@@ -136,6 +162,9 @@ export default function ResultsPage() {
     setAppliedFieldFilter('');
     setEvaluationFilter('');
     setPage(1);
+    
+    // URL 파라미터도 제거
+    router.push('/admin/results');
   };
 
   const handleViewDetail = (sessionId: string) => {
@@ -223,7 +252,14 @@ export default function ResultsPage() {
           {evaluationFilter === 'pending' && statusFilter === 'completed' && (
             <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm text-yellow-800">
-                🔍 <strong>대기 중인 평가</strong> 필터가 적용되었습니다. 완료된 테스트 중 평가가 필요한 항목들을 표시합니다.
+                🔍 <strong>완료</strong> 필터가 적용되었습니다. 테스트는 완료했지만 채점이 필요한 항목들을 표시합니다.
+              </p>
+            </div>
+          )}
+          {evaluationFilter === 'completed' && statusFilter === 'completed' && (
+            <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-md">
+              <p className="text-sm text-purple-800">
+                🔍 <strong>채점완료</strong> 필터가 적용되었습니다. 채점까지 완료된 항목들을 표시합니다.
               </p>
             </div>
           )}

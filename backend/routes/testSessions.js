@@ -693,6 +693,16 @@ router.get('/admin/list', requireAdmin, (req, res) => {
   const { page = 1, limit = 10, status, candidateName, appliedField, evaluation } = req.query;
   const offset = (page - 1) * limit;
 
+  // 디버깅: 받은 필터 파라미터 로그
+  console.log('📥 테스트 세션 목록 조회 - 필터 파라미터:', {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    status,
+    candidateName,
+    appliedField,
+    evaluation
+  });
+
   let query = `
     SELECT 
       ts.id,
@@ -754,9 +764,11 @@ router.get('/admin/list', requireAdmin, (req, res) => {
   // 평가 상태 필터
   if (evaluation) {
     if (evaluation === 'pending') {
-      conditions.push('e.id IS NULL AND ts.status = "completed"');
+      // 테스트는 완료되었지만(completed 또는 terminated) 평가가 아직 안된 경우
+      conditions.push('(e.id IS NULL OR e.status != "completed") AND ts.status IN ("completed", "terminated")');
     } else if (evaluation === 'completed') {
-      conditions.push('e.id IS NOT NULL');
+      // 평가가 완료된 경우
+      conditions.push('e.id IS NOT NULL AND e.status = "completed"');
     }
   }
 
@@ -766,6 +778,11 @@ router.get('/admin/list', requireAdmin, (req, res) => {
     query += whereClause;
     countQuery += whereClause;
   }
+
+  // 디버깅: 생성된 조건과 최종 쿼리 로그
+  console.log('🔍 생성된 조건:', conditions);
+  console.log('📊 최종 쿼리 파라미터:', params);
+  console.log('🗃️ 실행할 쿼리:', query.replace(/\s+/g, ' ').trim());
 
   // 정렬 및 페이징
   query += ' ORDER BY ts.created_at DESC LIMIT ? OFFSET ?';

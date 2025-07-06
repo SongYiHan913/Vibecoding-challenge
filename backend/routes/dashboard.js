@@ -149,14 +149,7 @@ router.get('/stats', requireAdmin, (req, res) => {
     // 총 지원자 수
     'SELECT COUNT(*) as totalCandidates FROM users WHERE role = "candidate"',
     // 총 질문 수  
-    'SELECT COUNT(*) as totalQuestions FROM questions',
-    // 완료된 테스트 수
-    'SELECT COUNT(*) as completedTests FROM test_sessions WHERE status = "completed"',
-    // 대기 중인 평가 수 (완료된 테스트 중 평가되지 않은 것)
-    `SELECT COUNT(*) as pendingEvaluations 
-     FROM test_sessions ts 
-     LEFT JOIN evaluations e ON ts.id = e.test_session_id 
-     WHERE ts.status = "completed" AND (e.id IS NULL OR e.status != "completed")`
+    'SELECT COUNT(*) as totalQuestions FROM questions'
   ];
 
   const results = {};
@@ -172,7 +165,7 @@ router.get('/stats', requireAdmin, (req, res) => {
         });
       }
 
-      const keys = ['totalCandidates', 'totalQuestions', 'completedTests', 'pendingEvaluations'];
+      const keys = ['totalCandidates', 'totalQuestions'];
       results[keys[index]] = Object.values(row)[0] || 0;
       completed++;
 

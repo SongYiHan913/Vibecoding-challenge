@@ -178,8 +178,6 @@ export interface QuestionForm {
 export interface DashboardStats {
   totalCandidates: number;
   totalQuestions: number;
-  completedTests: number;
-  pendingEvaluations: number;
 }
 
 export interface DetailedDashboardStats {
