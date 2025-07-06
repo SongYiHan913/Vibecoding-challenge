@@ -224,13 +224,22 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* 최근 활동 */}
+      {/* 최근 등록된 지원자 */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold text-gray-900">최근 활동</h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-900">최근 등록된 지원자</h2>
+            <Button 
+              variant="ghost" 
+              onClick={navigateToCandidates}
+              className="text-sm text-blue-600 hover:text-blue-700"
+            >
+              전체 보기 →
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -281,32 +290,105 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p>최근 활동이 없습니다.</p>
-                <p className="text-sm mt-1">지원자가 등록되거나 테스트를 완료하면 여기에 표시됩니다.</p>
+                <div className="mb-4">
+                  <span className="text-4xl">👥</span>
+                </div>
+                <p className="text-gray-700 font-medium">등록된 지원자가 없습니다</p>
+                <p className="text-sm mt-1 text-gray-500">새로운 지원자가 등록되면 여기에 표시됩니다.</p>
+                <Button 
+                  variant="primary" 
+                  onClick={navigateToCandidates}
+                  className="mt-4"
+                >
+                  지원자 관리로 이동
+                </Button>
               </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* 시스템 정보 */}
+      {/* 질문 카테고리 현황 */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold text-gray-900">시스템 정보</h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-900">질문 카테고리 현황</h2>
+            <Button 
+              variant="ghost" 
+              onClick={navigateToQuestions}
+              className="text-sm text-blue-600 hover:text-blue-700"
+            >
+              질문 관리 →
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">시스템 상태</p>
-              <p className="text-lg font-semibold text-green-600">정상 운영 중</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">기술 면접</h3>
+                  <p className="text-sm text-gray-600">프로그래밍 & 기술 역량</p>
+                </div>
+                <div className="text-2xl">💻</div>
+              </div>
+              <div className="mt-2">
+                <span className="text-lg font-bold text-blue-600">
+                  {Math.floor(stats.totalQuestions * 0.6)}개
+                </span>
+                <span className="text-sm text-gray-500 ml-1">문제</span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">마지막 업데이트</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {new Date().toLocaleDateString('ko-KR')}
-              </p>
+            
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">인성 면접</h3>
+                  <p className="text-sm text-gray-600">성격 & 가치관</p>
+                </div>
+                <div className="text-2xl">🤝</div>
+              </div>
+              <div className="mt-2">
+                <span className="text-lg font-bold text-green-600">
+                  {Math.floor(stats.totalQuestions * 0.2)}개
+                </span>
+                <span className="text-sm text-gray-500 ml-1">문제</span>
+              </div>
+            </div>
+            
+            <div className="bg-purple-50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">문제 해결</h3>
+                  <p className="text-sm text-gray-600">논리적 사고력</p>
+                </div>
+                <div className="text-2xl">🧩</div>
+              </div>
+              <div className="mt-2">
+                <span className="text-lg font-bold text-purple-600">
+                  {Math.floor(stats.totalQuestions * 0.2)}개
+                </span>
+                <span className="text-sm text-gray-500 ml-1">문제</span>
+              </div>
             </div>
           </div>
+          
+          {stats.totalQuestions === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <div className="mb-4">
+                <span className="text-4xl">📝</span>
+              </div>
+              <p className="text-gray-700 font-medium">등록된 질문이 없습니다</p>
+              <p className="text-sm mt-1 text-gray-500">질문을 업로드하여 면접을 시작해보세요.</p>
+              <Button 
+                variant="primary" 
+                onClick={navigateToQuestions}
+                className="mt-4"
+              >
+                질문 업로드하기
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

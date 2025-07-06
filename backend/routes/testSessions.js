@@ -6,6 +6,221 @@ const { performTestCompletionEvaluation } = require('../utils/evaluation');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: TestSessions
+ *   description: 면접 세션 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     TestSession:
+ *       type: object
+ *       required:
+ *         - candidate_id
+ *         - status
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: 세션 ID
+ *         candidate_id:
+ *           type: integer
+ *           description: 지원자 ID
+ *         status:
+ *           type: string
+ *           enum: [pending, in_progress, completed]
+ *           description: 세션 상태
+ *         start_time:
+ *           type: string
+ *           format: date-time
+ *           description: 시작 시간
+ *         end_time:
+ *           type: string
+ *           format: date-time
+ *           description: 종료 시간
+ *         total_questions:
+ *           type: integer
+ *           description: 총 질문 수
+ *         completed_questions:
+ *           type: integer
+ *           description: 완료된 질문 수
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: 생성 일시
+ */
+
+/**
+ * @swagger
+ * /api/test-sessions:
+ *   get:
+ *     summary: 모든 면접 세션 목록 조회
+ *     tags: [TestSessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: 세션 상태 필터
+ *     responses:
+ *       200:
+ *         description: 세션 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TestSession'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *
+ *   post:
+ *     summary: 새 면접 세션 생성
+ *     tags: [TestSessions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - candidate_id
+ *             properties:
+ *               candidate_id:
+ *                 type: integer
+ *               question_categories:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [technical, personality, problem_solving]
+ *     responses:
+ *       201:
+ *         description: 세션 생성 성공
+ *       400:
+ *         description: 잘못된 요청
+ */
+
+/**
+ * @swagger
+ * /api/test-sessions/{id}:
+ *   get:
+ *     summary: 특정 면접 세션 조회
+ *     tags: [TestSessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 세션 ID
+ *     responses:
+ *       200:
+ *         description: 세션 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TestSession'
+ *       404:
+ *         description: 세션을 찾을 수 없음
+ *
+ *   put:
+ *     summary: 면접 세션 상태 수정
+ *     tags: [TestSessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 세션 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed]
+ *               end_time:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: 세션 수정 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 세션을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/test-sessions/{id}/questions:
+ *   get:
+ *     summary: 면접 세션의 질문 목록 조회
+ *     tags: [TestSessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 세션 ID
+ *     responses:
+ *       200:
+ *         description: 질문 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Question'
+ *       404:
+ *         description: 세션을 찾을 수 없음
+ */
+
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
 

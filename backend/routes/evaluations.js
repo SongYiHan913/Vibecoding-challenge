@@ -6,6 +6,264 @@ const { performAutoEvaluation, performTestCompletionEvaluation } = require('../u
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Evaluations
+ *   description: 면접 평가 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Evaluation:
+ *       type: object
+ *       required:
+ *         - test_session_id
+ *         - question_id
+ *         - score
+ *         - feedback
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: 평가 ID
+ *         test_session_id:
+ *           type: integer
+ *           description: 면접 세션 ID
+ *         question_id:
+ *           type: integer
+ *           description: 질문 ID
+ *         score:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *           description: 평가 점수 (1-5)
+ *         feedback:
+ *           type: string
+ *           description: 평가 피드백
+ *         evaluator_notes:
+ *           type: string
+ *           description: 평가자 메모
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: 생성 일시
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: 수정 일시
+ */
+
+/**
+ * @swagger
+ * /api/evaluations:
+ *   get:
+ *     summary: 모든 평가 목록 조회
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: test_session_id
+ *         schema:
+ *           type: integer
+ *         description: 면접 세션 ID로 필터링
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 페이지당 항목 수
+ *     responses:
+ *       200:
+ *         description: 평가 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Evaluation'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *
+ *   post:
+ *     summary: 새 평가 등록
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - test_session_id
+ *               - question_id
+ *               - score
+ *               - feedback
+ *             properties:
+ *               test_session_id:
+ *                 type: integer
+ *               question_id:
+ *                 type: integer
+ *               score:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               feedback:
+ *                 type: string
+ *               evaluator_notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 평가 등록 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 세션 또는 질문을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/evaluations/{id}:
+ *   get:
+ *     summary: 특정 평가 조회
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 평가 ID
+ *     responses:
+ *       200:
+ *         description: 평가 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Evaluation'
+ *       404:
+ *         description: 평가를 찾을 수 없음
+ *
+ *   put:
+ *     summary: 평가 수정
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 평가 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               score:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               feedback:
+ *                 type: string
+ *               evaluator_notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 평가 수정 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 평가를 찾을 수 없음
+ *
+ *   delete:
+ *     summary: 평가 삭제
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 평가 ID
+ *     responses:
+ *       200:
+ *         description: 평가 삭제 성공
+ *       404:
+ *         description: 평가를 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/evaluations/session/{sessionId}/summary:
+ *   get:
+ *     summary: 면접 세션의 평가 요약 조회
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 면접 세션 ID
+ *     responses:
+ *       200:
+ *         description: 평가 요약 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     average_score:
+ *                       type: number
+ *                       description: 평균 점수
+ *                     total_questions:
+ *                       type: integer
+ *                       description: 총 질문 수
+ *                     evaluated_questions:
+ *                       type: integer
+ *                       description: 평가 완료된 질문 수
+ *                     category_scores:
+ *                       type: object
+ *                       description: 카테고리별 평균 점수
+ *       404:
+ *         description: 세션을 찾을 수 없음
+ */
+
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
 
@@ -80,8 +338,6 @@ router.post('/', requireAdmin, async (req, res) => {
     });
   }
 });
-
-
 
 // 평가 목록 조회 (관리자만)
 router.get('/', requireAdmin, (req, res) => {
