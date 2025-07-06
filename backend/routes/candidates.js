@@ -4,6 +4,196 @@ const { authenticateToken, requireAdmin, requireCandidate } = require('../middle
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Candidates
+ *   description: 지원자 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Candidate:
+ *       type: object
+ *       required:
+ *         - name
+ *         - email
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: 지원자 ID
+ *         name:
+ *           type: string
+ *           description: 지원자 이름
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: 지원자 이메일
+ *         status:
+ *           type: string
+ *           enum: [pending, in_progress, completed]
+ *           description: 지원자 상태
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: 생성 일시
+ */
+
+/**
+ * @swagger
+ * /api/candidates:
+ *   get:
+ *     summary: 모든 지원자 목록 조회
+ *     tags: [Candidates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 페이지당 항목 수
+ *     responses:
+ *       200:
+ *         description: 지원자 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Candidate'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *       401:
+ *         description: 인증되지 않은 요청
+ *
+ *   post:
+ *     summary: 새 지원자 등록
+ *     tags: [Candidates]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       201:
+ *         description: 지원자 등록 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       409:
+ *         description: 이미 존재하는 이메일
+ */
+
+/**
+ * @swagger
+ * /api/candidates/{id}:
+ *   get:
+ *     summary: 특정 지원자 정보 조회
+ *     tags: [Candidates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 지원자 ID
+ *     responses:
+ *       200:
+ *         description: 지원자 정보 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Candidate'
+ *       404:
+ *         description: 지원자를 찾을 수 없음
+ *
+ *   put:
+ *     summary: 지원자 정보 수정
+ *     tags: [Candidates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 지원자 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed]
+ *     responses:
+ *       200:
+ *         description: 지원자 정보 수정 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 지원자를 찾을 수 없음
+ *
+ *   delete:
+ *     summary: 지원자 삭제
+ *     tags: [Candidates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 지원자 ID
+ *     responses:
+ *       200:
+ *         description: 지원자 삭제 성공
+ *       404:
+ *         description: 지원자를 찾을 수 없음
+ */
+
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
 
