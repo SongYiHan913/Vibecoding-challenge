@@ -38,12 +38,11 @@ export interface Question {
   category?: string; // HTML, Javascript, Java, C#, MariaDB, MSSQL 등
   question: string;
   options?: string[]; // 4지 선다형인 경우
-  correctAnswer?: number; // 4지 선다형 정답 번호 (0-3)
-  correctAnswerText?: string; // 서술형 정답 문장
-  requiredKeywords?: string[]; // 서술형 필수 포함 단어
+  correct_answer?: number; // 4지 선다형 정답 번호 (0-3)
+  correct_answer_text?: string; // 서술형 정답 문장
+  required_keywords?: string[]; // 서술형 필수 포함 단어
   points: number;
-  createdAt: Date;
-  updatedAt: Date;
+  questionOrder?: number;
 }
 
 // 테스트 세션 관련 타입
@@ -64,11 +63,11 @@ export interface TestSession {
 }
 
 export interface TestAnswer {
-  questionId: string;
-  answer?: string | number; // 선택형은 번호, 서술형은 텍스트
-  answerText?: string; // 서술형 답안용 필드 추가
-  answeredAt: Date;
-  timeTaken: number; // 답변에 소요된 시간 (초)
+  id: string;
+  questionOrder?: number;
+  answer?: number; // 객관식 답안 (0-3)
+  answerText?: string; // 주관식 답안
+  submittedAt: string;
 }
 
 // 평가 관련 타입

@@ -118,7 +118,7 @@ export default function TestPage() {
       setTestStarted(true);
       const currentQ = questions[currentQuestionIndex || 0];
       if (currentQ) {
-        const savedAnswer = answers.find(answer => answer.questionId === currentQ.id);
+        const savedAnswer = answers.find(answer => answer.id === currentQ.id);
         if (savedAnswer) {
           // 4지선다는 숫자, 주관식은 문자열
           setCurrentAnswer(savedAnswer.answer !== undefined ? savedAnswer.answer : savedAnswer.answerText || '');
@@ -137,7 +137,7 @@ export default function TestPage() {
   // 질문 변경 시 답안 로드
   useEffect(() => {
     if (currentQuestion) {
-      const savedAnswer = answers.find(answer => answer.questionId === currentQuestion.id);
+      const savedAnswer = answers.find(answer => answer.id === currentQuestion.id);
       if (savedAnswer) {
         // 4지선다는 숫자(0 포함), 주관식은 문자열
         setCurrentAnswer(savedAnswer.answer !== undefined ? savedAnswer.answer : savedAnswer.answerText || '');
@@ -974,7 +974,7 @@ export default function TestPage() {
             <CardContent>
               <div className="grid grid-cols-5 gap-2 mb-4">
                 {questions.map((_, index) => {
-                  const isAnswered = answers.some(a => a.questionId === questions[index].id);
+                  const isAnswered = answers.some(a => a.id === questions[index].id);
                   const isCurrent = index === currentQuestionIndex;
                   
                   return (

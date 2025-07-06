@@ -208,7 +208,7 @@ export const useTest = () => {
   // 현재 질문의 답안 가져오기
   const getCurrentAnswer = () => {
     if (!currentQuestion) return null;
-    return answers.find(answer => answer.questionId === currentQuestion.id);
+    return answers.find(answer => answer.id === currentQuestion.id);
   };
 
   // 답변한 질문 수

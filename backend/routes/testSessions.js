@@ -489,9 +489,8 @@ async function generateQuestionsForCandidate(appliedField, experienceLevel) {
     );
     selectedQuestions.push(...problemSolvingQuestions);
 
-    // 질문에 순서 번호 추가
+    // 질문에 순서 번호 추가 (중복 필드 제거)
     return selectedQuestions.map((question, index) => ({
-      ...question,
       questionOrder: index + 1,
       id: question.id,
       type: question.type,
@@ -502,9 +501,9 @@ async function generateQuestionsForCandidate(appliedField, experienceLevel) {
       category: question.category,
       question: question.question,
       options: question.options ? JSON.parse(question.options) : null,
-      correctAnswer: question.correct_answer,
-      correctAnswerText: question.correct_answer_text,
-      requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+      correct_answer: question.correct_answer,
+      correct_answer_text: question.correct_answer_text,
+      required_keywords: question.required_keywords ? JSON.parse(question.required_keywords) : [],
       points: question.points
     }));
 
@@ -689,6 +688,142 @@ router.post('/:sessionId/complete', requireCandidate, (req, res) => {
   );
 });
 
+// 관리자용 테스트 세션 목록 조회 (관리자만)
+router.get('/admin/list', requireAdmin, (req, res) => {
+  const { page = 1, limit = 10, status, candidateName, appliedField } = req.query;
+  const offset = (page - 1) * limit;
+
+  let query = `
+    SELECT 
+      ts.id,
+      ts.candidate_id,
+      ts.status,
+      ts.started_at,
+      ts.completed_at,
+      ts.terminated_at,
+      ts.termination_reason,
+      ts.total_time,
+      ts.cheating_attempts,
+      ts.focus_lost_count,
+      ts.created_at,
+      u.name as candidate_name,
+      u.email as candidate_email,
+      u.applied_field,
+      u.experience,
+      e.id as evaluation_id,
+      e.total_score,
+      e.technical_score,
+      e.personality_score,
+      e.problem_solving_score,
+      e.status as evaluation_status
+    FROM test_sessions ts
+    JOIN users u ON ts.candidate_id = u.id
+    LEFT JOIN evaluations e ON ts.id = e.test_session_id
+    WHERE u.role = 'candidate'
+  `;
+
+  let countQuery = `
+    SELECT COUNT(*) as total
+    FROM test_sessions ts
+    JOIN users u ON ts.candidate_id = u.id
+    WHERE u.role = 'candidate'
+  `;
+
+  const params = [];
+  const conditions = [];
+
+  // 상태 필터
+  if (status) {
+    conditions.push('ts.status = ?');
+    params.push(status);
+  }
+
+  // 지원자 이름 검색
+  if (candidateName) {
+    conditions.push('u.name LIKE ?');
+    params.push(`%${candidateName}%`);
+  }
+
+  // 지원 분야 필터
+  if (appliedField) {
+    conditions.push('u.applied_field = ?');
+    params.push(appliedField);
+  }
+
+  // 조건 추가
+  if (conditions.length > 0) {
+    const whereClause = ' AND ' + conditions.join(' AND ');
+    query += whereClause;
+    countQuery += whereClause;
+  }
+
+  // 정렬 및 페이징
+  query += ' ORDER BY ts.created_at DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(limit), parseInt(offset));
+
+  // 총 개수 조회
+  db.get(countQuery, params.slice(0, -2), (err, countResult) => {
+    if (err) {
+      console.error('테스트 세션 개수 조회 오류:', err);
+      return res.status(500).json({
+        success: false,
+        message: '서버 오류가 발생했습니다.'
+      });
+    }
+
+    // 목록 조회
+    db.all(query, params, (err, sessions) => {
+      if (err) {
+        console.error('테스트 세션 목록 조회 오류:', err);
+        return res.status(500).json({
+          success: false,
+          message: '서버 오류가 발생했습니다.'
+        });
+      }
+
+      const total = countResult.total;
+      const totalPages = Math.ceil(total / limit);
+
+      res.json({
+        success: true,
+        data: {
+          sessions: sessions.map(session => ({
+            id: session.id,
+            candidateId: session.candidate_id,
+            candidateName: session.candidate_name,
+            candidateEmail: session.candidate_email,
+            appliedField: session.applied_field,
+            experience: session.experience,
+            status: session.status,
+            startedAt: session.started_at ? new Date(session.started_at) : null,
+            completedAt: session.completed_at ? new Date(session.completed_at) : null,
+            terminatedAt: session.terminated_at ? new Date(session.terminated_at) : null,
+            terminationReason: session.termination_reason,
+            totalTime: session.total_time,
+            cheatingAttempts: session.cheating_attempts,
+            focusLostCount: session.focus_lost_count,
+            createdAt: new Date(session.created_at),
+            evaluation: session.evaluation_id ? {
+              id: session.evaluation_id,
+              totalScore: session.total_score,
+              technicalScore: session.technical_score,
+              personalityScore: session.personality_score,
+              problemSolvingScore: session.problem_solving_score,
+              status: session.evaluation_status
+            } : null
+          })),
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            totalPages
+          }
+        }
+      });
+    });
+  });
+});
+
 // 테스트 세션 조회
 router.get('/:sessionId', (req, res) => {
   const { sessionId } = req.params;
@@ -775,15 +910,48 @@ router.post('/:sessionId/answers', requireCandidate, (req, res) => {
         });
       }
 
-      // 현재 답안들 가져오기
-      const currentAnswers = session.answers ? JSON.parse(session.answers) : {};
+      // 현재 답안들 가져오기 (배열 형태)
+      let currentAnswers = session.answers ? JSON.parse(session.answers) : [];
       
-      // 새 답안 추가
-      currentAnswers[questionId] = {
-        answer: answer || null,
-        answerText: answerText || null,
+      // 기존 답안 중 같은 questionId 찾기
+      const existingIndex = currentAnswers.findIndex(a => a.id === questionId);
+      
+      // 새 답안 데이터 생성 (불필요한 필드 제거)
+      const newAnswerData = {
+        id: questionId,
         submittedAt: new Date().toISOString()
       };
+      
+      // 답안 타입에 따라 적절한 필드만 추가
+      if (typeof answer === 'number') {
+        // 객관식 (multiple-choice)
+        newAnswerData.answer = answer;
+      } else if (answerText && answerText.trim()) {
+        // 주관식 (essay)
+        newAnswerData.answerText = answerText.trim();
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: '올바른 답안 형식이 아닙니다.'
+        });
+      }
+      
+      // questionOrder 추가 (질문 목록에서 순서 찾기)
+      const questions = JSON.parse(session.questions);
+      const questionIndex = questions.findIndex(q => q.id === questionId);
+      if (questionIndex !== -1) {
+        newAnswerData.questionOrder = questionIndex + 1;
+      }
+      
+      // 기존 답안 업데이트 또는 새로 추가
+      if (existingIndex !== -1) {
+        currentAnswers[existingIndex] = newAnswerData;
+      } else {
+        currentAnswers.push(newAnswerData);
+      }
+      
+      // questionOrder 순으로 정렬
+      currentAnswers.sort((a, b) => (a.questionOrder || 0) - (b.questionOrder || 0));
 
       // 답안 저장
       db.run(

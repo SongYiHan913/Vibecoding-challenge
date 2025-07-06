@@ -75,15 +75,25 @@ export const useTestStore = create<TestState>((set, get) => ({
   },
 
   submitAnswer: (questionId: string, answer: string | number) => {
-    const { answers, currentSession } = get();
-    const existingAnswerIndex = answers.findIndex(a => a.questionId === questionId);
+    const { answers, currentSession, questions } = get();
+    const existingAnswerIndex = answers.findIndex(a => a.id === questionId);
+    
+    // questionOrder 찾기
+    const questionIndex = questions.findIndex(q => q.id === questionId);
+    const questionOrder = questionIndex !== -1 ? questionIndex + 1 : undefined;
+    
     const newAnswer: TestAnswer = {
-      questionId,
-      answer: typeof answer === 'number' ? answer : undefined,
-      answerText: typeof answer === 'string' ? answer : undefined,
-      answeredAt: new Date(),
-      timeTaken: 0,
+      id: questionId,
+      questionOrder,
+      submittedAt: new Date().toISOString(),
     };
+    
+    // 답안 타입에 따라 적절한 필드만 설정
+    if (typeof answer === 'number') {
+      newAnswer.answer = answer; // 객관식
+    } else if (typeof answer === 'string' && answer.trim()) {
+      newAnswer.answerText = answer.trim(); // 주관식
+    }
 
     let updatedAnswers;
     if (existingAnswerIndex >= 0) {
@@ -92,6 +102,9 @@ export const useTestStore = create<TestState>((set, get) => ({
     } else {
       updatedAnswers = [...answers, newAnswer];
     }
+    
+    // questionOrder 순으로 정렬
+    updatedAnswers.sort((a, b) => (a.questionOrder || 0) - (b.questionOrder || 0));
 
     set({
       answers: updatedAnswers,
