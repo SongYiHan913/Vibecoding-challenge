@@ -177,6 +177,13 @@ export interface QuestionForm {
 // 통계 관련 타입
 export interface DashboardStats {
   totalCandidates: number;
+  totalQuestions: number;
+  completedTests: number;
+  pendingEvaluations: number;
+}
+
+export interface DetailedDashboardStats {
+  totalCandidates: number;
   completedTests: number;
   averageScore: number;
   passRate: number;

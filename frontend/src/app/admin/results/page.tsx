@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -49,6 +49,7 @@ interface ApiResponse {
 
 export default function ResultsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token } = useAuthStore();
   const [sessions, setSessions] = useState<TestSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,10 +62,20 @@ export default function ResultsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [candidateNameFilter, setCandidateNameFilter] = useState('');
   const [appliedFieldFilter, setAppliedFieldFilter] = useState('');
+  const [evaluationFilter, setEvaluationFilter] = useState('');
+
+  // URL 파라미터에서 필터 설정 읽기
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter === 'pending-evaluation') {
+      setEvaluationFilter('pending');
+      setStatusFilter('completed'); // 완료된 테스트 중에서 평가 대기인 것만
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchSessions();
-  }, [page, pageSize, statusFilter, candidateNameFilter, appliedFieldFilter]);
+  }, [page, pageSize, statusFilter, candidateNameFilter, appliedFieldFilter, evaluationFilter]);
 
   const fetchSessions = async () => {
     try {
@@ -80,7 +91,8 @@ export default function ResultsPage() {
         limit: pageSize.toString(),
         ...(statusFilter && { status: statusFilter }),
         ...(candidateNameFilter && { candidateName: candidateNameFilter }),
-        ...(appliedFieldFilter && { appliedField: appliedFieldFilter })
+        ...(appliedFieldFilter && { appliedField: appliedFieldFilter }),
+        ...(evaluationFilter && { evaluation: evaluationFilter })
       });
 
       const response = await fetch(`${API_ENDPOINTS.TEST_SESSIONS}/admin/list?${queryParams}`, {
@@ -122,6 +134,7 @@ export default function ResultsPage() {
     setStatusFilter('');
     setCandidateNameFilter('');
     setAppliedFieldFilter('');
+    setEvaluationFilter('');
     setPage(1);
   };
 
@@ -207,6 +220,13 @@ export default function ResultsPage() {
           <p className="text-gray-700 mt-1">
             테스트 세션 및 평가 결과를 관리합니다.
           </p>
+          {evaluationFilter === 'pending' && statusFilter === 'completed' && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                🔍 <strong>대기 중인 평가</strong> 필터가 적용되었습니다. 완료된 테스트 중 평가가 필요한 항목들을 표시합니다.
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -231,7 +251,7 @@ export default function ResultsPage() {
           <h2 className="text-lg font-semibold text-gray-900">검색 및 필터</h2>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 지원자 이름
@@ -273,6 +293,21 @@ export default function ResultsPage() {
                 <option value="">전체</option>
                 <option value="java">Java</option>
                 <option value="csharp">C#</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                평가 상태
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                value={evaluationFilter}
+                onChange={(e) => setEvaluationFilter(e.target.value)}
+              >
+                <option value="">전체</option>
+                <option value="pending">평가 대기</option>
+                <option value="completed">평가 완료</option>
               </select>
             </div>
 
