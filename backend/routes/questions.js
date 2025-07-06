@@ -432,6 +432,17 @@ function handleFileUpload(req, res) {
       // ID가 있으면 사용하고, 없으면 새로 생성
       const questionId = id || uuidv4();
 
+      // correctAnswer 처리 - 0-based에서 1-based로 변환
+      let processedCorrectAnswer = null;
+      if (format === 'multiple-choice' && correctAnswer !== null && correctAnswer !== undefined) {
+        // 0-based index를 1-based index로 변환
+        processedCorrectAnswer = parseInt(correctAnswer) + 1;
+        console.log(`📝 질문 ${index + 1}: correctAnswer 변환 ${correctAnswer} → ${processedCorrectAnswer}`);
+      } else if (format === 'essay') {
+        // 서술형 질문은 correctAnswer가 null이어야 함
+        processedCorrectAnswer = null;
+      }
+
       db.run(
         `INSERT INTO questions (
           id, type, format, difficulty, experience_level, field, category,
@@ -442,7 +453,7 @@ function handleFileUpload(req, res) {
           questionId, type, format, difficulty, experienceLevel, field, category,
           question,
           options ? JSON.stringify(options) : null,
-          correctAnswer || null,
+          processedCorrectAnswer,
           correctAnswerText || null,
           requiredKeywords ? JSON.stringify(requiredKeywords) : null,
           points
