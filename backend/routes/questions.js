@@ -252,7 +252,7 @@ router.use(authenticateToken);
 
 // 질문 목록 조회
 router.get('/', (req, res) => {
-  const { page = 1, limit = 10, type, difficulty, field, format } = req.query;
+  const { page = 1, limit = 10, type, difficulty, field, format, search } = req.query;
   const offset = (page - 1) * limit;
 
   let query = 'SELECT * FROM questions';
@@ -279,6 +279,12 @@ router.get('/', (req, res) => {
   if (format) {
     conditions.push('format = ?');
     params.push(format);
+  }
+
+  // 검색 조건 추가 (question 내용에서 LIKE 검색)
+  if (search) {
+    conditions.push('question LIKE ?');
+    params.push(`%${search}%`);
   }
 
   if (conditions.length > 0) {

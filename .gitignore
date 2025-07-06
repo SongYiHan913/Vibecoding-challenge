@@ -3,8 +3,8 @@ node_modules/
 frontend/node_modules/
 
 # Database (평가 시 초기 데이터 부담 줄임)
-database/
-*.db
+#database/
+#*.db
 *.sqlite
 *.sqlite3
 

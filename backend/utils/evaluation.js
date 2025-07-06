@@ -11,7 +11,17 @@ function performAutoEvaluation(session, evaluatorId = 'system') {
   return new Promise((resolve, reject) => {
     try {
       const questions = JSON.parse(session.questions);
-      const answers = JSON.parse(session.answers || '{}');
+      // answers는 배열 형태로 저장되므로 배열로 파싱
+      const answersArray = JSON.parse(session.answers || '[]');
+      
+      // 빠른 검색을 위해 답안을 Map으로 변환
+      const answersMap = {};
+      answersArray.forEach(answer => {
+        answersMap[answer.id] = answer;
+      });
+      
+      console.log(`🎯 자동 채점 시작 - 세션: ${session.id}`);
+      console.log(`📋 질문 수: ${questions.length}, 답안 수: ${answersArray.length}`);
       
       let technicalScore = 0;
       let personalityScore = 0;
@@ -23,30 +33,43 @@ function performAutoEvaluation(session, evaluatorId = 'system') {
       const detailedResults = [];
 
       // 각 질문별 채점
-      questions.forEach(question => {
-        const userAnswer = answers[question.id];
+      questions.forEach((question, index) => {
+        const userAnswer = answersMap[question.id];
         let score = 0;
         let maxScore = question.points;
 
         if (userAnswer) {
           if (question.format === 'multiple-choice') {
             // 객관식 채점
-            if (userAnswer.answer === question.correctAnswer) {
+            // userAnswer.answer는 0-based (0,1,2,3), question.correct_answer는 1-based (1,2,3,4)
+            // 따라서 userAnswer.answer + 1로 변환하여 비교
+            const userChoice = userAnswer.answer + 1; // 0-based를 1-based로 변환
+            const correctChoice = question.correct_answer;
+            
+            console.log(`📝 질문 ${index + 1} (${question.id}): 지원자 선택 ${userAnswer.answer} → ${userChoice}, 정답 ${correctChoice}`);
+            
+            if (userChoice === correctChoice) {
               score = maxScore;
+              console.log(`✅ 정답! ${score}점 획득`);
+            } else {
+              console.log(`❌ 오답! 0점`);
             }
           } else if (question.format === 'essay') {
             // 주관식 채점 (키워드 기반)
-            if (question.requiredKeywords && userAnswer.answerText) {
-              const keywords = Array.isArray(question.requiredKeywords) 
-                ? question.requiredKeywords 
-                : JSON.parse(question.requiredKeywords);
+            if (question.required_keywords && userAnswer.answerText) {
+              const keywords = Array.isArray(question.required_keywords) 
+                ? question.required_keywords 
+                : JSON.parse(question.required_keywords);
               const answerText = userAnswer.answerText.toLowerCase();
               const matchedKeywords = keywords.filter(keyword => 
                 answerText.includes(keyword.toLowerCase())
               );
               score = Math.round((matchedKeywords.length / keywords.length) * maxScore);
+              console.log(`📝 주관식 질문 ${index + 1}: 키워드 ${matchedKeywords.length}/${keywords.length} 매칭, ${score}점`);
             }
           }
+        } else {
+          console.log(`📝 질문 ${index + 1} (${question.id}): 답안 없음, 0점`);
         }
 
         // 타입별 점수 집계
@@ -70,7 +93,7 @@ function performAutoEvaluation(session, evaluatorId = 'system') {
           type: question.type,
           question: question.question,
           userAnswer: userAnswer || null,
-          correctAnswer: question.correctAnswer || question.correctAnswerText,
+          correctAnswer: question.correct_answer || question.correct_answer_text,
           score,
           maxScore,
           points: question.points

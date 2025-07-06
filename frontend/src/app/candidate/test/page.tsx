@@ -862,7 +862,8 @@ export default function TestPage() {
                       <p className="text-red-700 leading-relaxed">
                         온라인 면접을 시작한 후 <strong>웹 브라우저의 다른 탭으로 포커스가 이동</strong>하거나, 
                         <strong>다른 프로그램을 활성화</strong> 하면 <strong>시험이 강제 종료</strong>되며 
-                        응답하지 않은 문제는 <strong>0점 처리</strong> 됩니다.
+                        응답하지 않은 문제는 <strong>0점 처리</strong> 됩니다. &nbsp;
+                        <strong>개발자 도구를 활성화하면 테스트가 강제 종료</strong>됩니다.
                       </p>
                     </div>
                   </div>
@@ -886,7 +887,7 @@ export default function TestPage() {
                     </li>
                     <li className="flex items-start">
                       <span className="text-blue-500 mr-2">•</span>
-                      포커스를 3회 잃으면 테스트가 자동 종료됩니다.
+                      포커스를 3회 잃거나, 개발자 도구가 켜지면 테스트가 자동 종료됩니다.
                     </li>
                   </ul>
                 </div>

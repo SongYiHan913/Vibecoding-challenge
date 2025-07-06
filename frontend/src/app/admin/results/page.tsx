@@ -171,12 +171,16 @@ export default function ResultsPage() {
     router.push(`/admin/results/${sessionId}`);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, terminationReason?: string) => {
     const statusConfig = {
       'not-started': { label: '미시작', bgColor: 'bg-gray-100', textColor: 'text-gray-800' },
       'in-progress': { label: '진행중', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
       'completed': { label: '완료', bgColor: 'bg-green-100', textColor: 'text-green-800' },
-      'terminated': { label: '채점완료', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
+      'terminated': { 
+        label: terminationReason === 'cheating' ? '치팅종료' : terminationReason === 'time-expired' ? '시간초과' : '채점완료', 
+        bgColor: terminationReason === 'cheating' ? 'bg-red-100' : terminationReason === 'time-expired' ? 'bg-orange-100' : 'bg-purple-100', 
+        textColor: terminationReason === 'cheating' ? 'text-red-800' : terminationReason === 'time-expired' ? 'text-orange-800' : 'text-purple-800'
+      },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['not-started'];
@@ -187,7 +191,16 @@ export default function ResultsPage() {
     );
   };
 
-  const getEvaluationBadge = (evaluation: TestSession['evaluation']) => {
+  const getEvaluationBadge = (evaluation: TestSession['evaluation'], terminationReason?: string) => {
+    // 치팅으로 종료된 경우 특별 표시
+    if (terminationReason === 'cheating') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          🚫 치팅감지
+        </span>
+      );
+    }
+
     if (!evaluation) {
       return (
         <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -438,10 +451,17 @@ export default function ResultsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(session.status)}
+                        <div className="flex items-center space-x-2">
+                          {getStatusBadge(session.status, session.terminationReason || undefined)}
+                          {session.terminationReason === 'cheating' && (
+                            <span className="text-xs text-red-600">
+                              (포커스 이탈 {session.focusLostCount || 0}회)
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getEvaluationBadge(session.evaluation)}
+                        {getEvaluationBadge(session.evaluation, session.terminationReason || undefined)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {session.completedAt
@@ -451,7 +471,19 @@ export default function ResultsPage() {
                           : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {session.status === 'completed' ? (
+                        {session.terminationReason === 'cheating' ? (
+                          <div className="flex flex-col items-center space-y-1">
+                            <span className="text-xs text-red-600 font-medium">채점 불가</span>
+                            <Button
+                              onClick={() => handleViewDetail(session.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              상세 보기
+                            </Button>
+                          </div>
+                        ) : session.status === 'completed' ? (
                           <Button
                             onClick={() => handleViewDetail(session.id)}
                             variant="primary"

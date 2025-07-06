@@ -3,12 +3,8 @@
 개발자의 기술 역량, 인성, 문제 해결 능력을 평가하는 온라인 면접 플랫폼입니다.
 
 * 활용 AI
-  - ChatGPT Pro : 일반적인 질의 응답, 프롬프트 템플릿을 통한 면접 문제 리스트 출제
+  - ChatGPT Pro : 일반적인 질의 응답, 설계, 프롬프트 템플릿을 통한 면접 문제 출제
   - Cursor AI (claude-4-sonnet) : 시스템 설계 및 구현, 문서화
-
-## 주의 사항
-
-* Mac 개발 환경만 지원합니다. (시간 상 크로스플랫폼 개발 이슈 해결하지 않았음)
 
 ## 🎯 프로젝트 상태
 
@@ -31,9 +27,10 @@
 
 ### 1. 요구사항 분석/설계
 
-* 요구사항 분석 : design/requirement
-* 설계 문서 : design/design
-* 상세 설계를 위한 사용자 의사결정 사항 도출 : design/testsession_decisions.md
+* 관련 디렉토리
+  * 요구사항 분석 : design/requirement
+  * 설계 문서 : design/design
+  * 상세 설계를 위한 사용자 의사결정 사항 도출 : design/testsession_decisions.md
 
 ### 2. 구현
 
@@ -45,6 +42,7 @@
 
 * 지원자 온라인 면접 시 출제할 문제 생성
 * AI 에 질의하기 위한 프롬프트 템플릿 생성
+* 관련 디렉토리
   - design/questions/README.md
 
 ### 4. 프롬프트 히스토리
@@ -55,6 +53,12 @@
 
 * .cursorrules
 * 코드 생성 시 작성 규칙 및 AI tool 선택 옵션 적용
+
+## Github 활용
+
+* Feature branch 를 사용하여 개발된 코드 push 및 develop branch 로 merge request
+* Github issue link 사용 (branch 및 commit message 에 auto-link)
+* 개발 완료 후 main branch 로 merge request
 
 ## 🏗️ 프로젝트 구조
 
@@ -117,7 +121,7 @@ Vibecoding-challenge/
 
 ### 1. 의존성 설치
 ```bash
-# 루트 패키지 설치
+# 루트 위치
 npm install
 ```
 
@@ -160,6 +164,27 @@ http://localhost:3000/api-docs
 - 요청/응답 스키마 문서화
 - API 실시간 테스트 기능
 - 인증 토큰 설정 및 테스트
+
+### 6. 초기 데이터
+
+SQLLITE DB 데이터파일을 제공합니다.
+데이터 파일에는
+* admin 사용자 계정
+* test 사용자 계정
+* 온라인 면접 질문 90개
+
+가 제공됩니다.
+
+### 7. 부정 방지
+
+지원자가 온라인 면접을 시작한 후 다른 프로그램으로 전환하거나 다른 탭을 열거나, 개발자 도구를 여는 경우 부정 행위로 탐지하고 3회 경고 후 시험을 강제 종료합니다.
+
+브라우저의 보안 제약사항 때문에 매우 정교하게 동작하지는 않습니다.
+
+### 8. 테스트코드
+
+* Backend API 는 Jest 테스트코드가 구현되어 있습니다.
+* Frontend 는 테스트코드가 없으나 Playwright 등의 프레임워크를 활용하여 E2E 테스트를 구성할 수 있습니다.
 
 ## 🎯 현재 사용 가능한 기능
 
