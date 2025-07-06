@@ -25,6 +25,12 @@ export default function QuestionsPage() {
     experienceLevel: '' as ExperienceLevel | '',
     field: '' as 'java' | 'csharp' | 'common' | '',
   });
+  
+  // 페이징 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   // 질문 목록 조회
   const fetchQuestions = async () => {
@@ -32,6 +38,8 @@ export default function QuestionsPage() {
       setLoading(true);
       const response = await questionAPI.getQuestions({
         search: searchTerm,
+        page: currentPage,
+        limit: pageSize,
         ...filters,
       });
       
@@ -41,17 +49,29 @@ export default function QuestionsPage() {
         const questionsData = apiData.questions || apiData;
         const questionsArray = Array.isArray(questionsData) ? questionsData : [];
         setQuestions(questionsArray);
+        
+        // 페이징 정보 업데이트
+        if (apiData.pagination) {
+          setTotalItems(apiData.pagination.total);
+          setTotalPages(apiData.pagination.totalPages);
+        }
+        
         console.log('✅ 질문 데이터 로드 성공:', questionsArray.length, '개');
+        console.log('📋 페이징 정보:', apiData.pagination);
       } else {
         // API 응답이 실패하거나 데이터가 없으면 빈 배열로 설정
         setQuestions([]);
+        setTotalItems(0);
+        setTotalPages(0);
         console.log('❌ 질문 데이터 없음 또는 실패');
       }
     } catch (error) {
       console.error('❌ 질문 조회 오류:', error);
-      console.error('요청 필터:', { searchTerm, filters });
+      console.error('요청 필터:', { searchTerm, filters, currentPage, pageSize });
       // 오류 발생 시에도 빈 배열로 설정하여 안전하게 처리
       setQuestions([]);
+      setTotalItems(0);
+      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -59,7 +79,7 @@ export default function QuestionsPage() {
 
   useEffect(() => {
     fetchQuestions();
-  }, [searchTerm, filters]);
+  }, [searchTerm, filters, currentPage, pageSize]);
 
   // JSON 파일 업로드
   const handleFileUpload = async () => {
@@ -76,6 +96,7 @@ export default function QuestionsPage() {
         alert('질문이 성공적으로 업로드되었습니다.');
         setShowUploadModal(false);
         setUploadFile(null);
+        setCurrentPage(1); // 업로드 후 첫 페이지로
         fetchQuestions();
       } else {
         alert(`업로드 실패: ${response.error}`);
@@ -99,7 +120,13 @@ export default function QuestionsPage() {
       
       if (response.success) {
         alert('질문이 삭제되었습니다.');
-        fetchQuestions();
+        
+        // 현재 페이지에서 마지막 항목을 삭제한 경우 이전 페이지로 이동
+        if (questions.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          fetchQuestions();
+        }
       } else {
         alert(`삭제 실패: ${response.error}`);
       }
@@ -119,6 +146,37 @@ export default function QuestionsPage() {
       field: '',
     });
     setSearchTerm('');
+    setCurrentPage(1); // 필터 리셋 시 첫 페이지로
+  };
+
+  // 페이징 함수들
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1); // 페이지 크기 변경 시 첫 페이지로
+  };
+
+  // 페이지 번호 배열 생성
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    const halfVisible = Math.floor(maxVisiblePages / 2);
+    
+    let startPage = Math.max(1, currentPage - halfVisible);
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
   };
 
   // 질문 상세보기
@@ -136,7 +194,13 @@ export default function QuestionsPage() {
         alert('질문이 삭제되었습니다.');
         setShowDetailModal(false);
         setSelectedQuestion(null);
-        fetchQuestions();
+        
+        // 현재 페이지에서 마지막 항목을 삭제한 경우 이전 페이지로 이동
+        if (questions.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          fetchQuestions();
+        }
       } else {
         alert(`삭제 실패: ${response.error}`);
       }
@@ -202,7 +266,10 @@ export default function QuestionsPage() {
                 type="text"
                 placeholder="질문 내용 검색..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // 검색 시 첫 페이지로
+                }}
               />
             </div>
             
@@ -213,7 +280,10 @@ export default function QuestionsPage() {
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 value={filters.type}
-                onChange={(e) => setFilters({...filters, type: e.target.value as QuestionType | ''})}
+                onChange={(e) => {
+                  setFilters({...filters, type: e.target.value as QuestionType | ''});
+                  setCurrentPage(1);
+                }}
               >
                 <option value="">전체</option>
                 <option value={QUESTION_TYPES.TECHNICAL}>기술</option>
@@ -229,7 +299,10 @@ export default function QuestionsPage() {
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 value={filters.format}
-                onChange={(e) => setFilters({...filters, format: e.target.value as QuestionFormat | ''})}
+                onChange={(e) => {
+                  setFilters({...filters, format: e.target.value as QuestionFormat | ''});
+                  setCurrentPage(1);
+                }}
               >
                 <option value="">전체</option>
                 <option value={QUESTION_FORMATS.MULTIPLE_CHOICE}>객관식</option>
@@ -244,7 +317,10 @@ export default function QuestionsPage() {
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 value={filters.difficulty}
-                onChange={(e) => setFilters({...filters, difficulty: e.target.value as Difficulty | ''})}
+                onChange={(e) => {
+                  setFilters({...filters, difficulty: e.target.value as Difficulty | ''});
+                  setCurrentPage(1);
+                }}
               >
                 <option value="">전체</option>
                 <option value={DIFFICULTIES.EASY}>쉬움</option>
@@ -260,7 +336,10 @@ export default function QuestionsPage() {
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 value={filters.experienceLevel}
-                onChange={(e) => setFilters({...filters, experienceLevel: e.target.value as ExperienceLevel | ''})}
+                onChange={(e) => {
+                  setFilters({...filters, experienceLevel: e.target.value as ExperienceLevel | ''});
+                  setCurrentPage(1);
+                }}
               >
                 <option value="">전체</option>
                 <option value={EXPERIENCE_LEVELS.JUNIOR}>주니어</option>
@@ -275,7 +354,10 @@ export default function QuestionsPage() {
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 value={filters.field}
-                onChange={(e) => setFilters({...filters, field: e.target.value as 'java' | 'csharp' | 'common' | ''})}
+                onChange={(e) => {
+                  setFilters({...filters, field: e.target.value as 'java' | 'csharp' | 'common' | ''});
+                  setCurrentPage(1);
+                }}
               >
                 <option value="">전체</option>
                 <option value="java">Java</option>
@@ -294,11 +376,84 @@ export default function QuestionsPage() {
               필터 초기화
             </Button>
             <span className="text-sm text-gray-900">
-              총 {questions.length}개의 질문
+              총 {totalItems}개의 질문 (현재 페이지: {currentPage}/{totalPages})
             </span>
           </div>
         </CardContent>
       </Card>
+
+      {/* 페이지네이션 및 페이지 크기 설정 */}
+      {!loading && totalItems > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              {/* 페이지 크기 설정 */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-900">
+                  페이지당 항목 수:
+                </label>
+                <select
+                  className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                >
+                  <option value={5}>5개</option>
+                  <option value={10}>10개</option>
+                  <option value={20}>20개</option>
+                  <option value={50}>50개</option>
+                </select>
+              </div>
+
+              {/* 페이지네이션 */}
+              <div className="flex items-center space-x-2">
+                {/* 이전 버튼 */}
+                <Button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-900"
+                >
+                  이전
+                </Button>
+
+                {/* 페이지 번호들 */}
+                {getPageNumbers().map((pageNumber) => (
+                  <Button
+                    key={pageNumber}
+                    onClick={() => handlePageChange(pageNumber)}
+                    variant={currentPage === pageNumber ? "primary" : "ghost"}
+                    size="sm"
+                    className={
+                      currentPage === pageNumber
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-900 hover:bg-gray-100"
+                    }
+                  >
+                    {pageNumber}
+                  </Button>
+                ))}
+
+                {/* 다음 버튼 */}
+                <Button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-900"
+                >
+                  다음
+                </Button>
+              </div>
+
+              {/* 페이지 정보 */}
+              <div className="text-sm text-gray-900">
+                {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalItems)} / {totalItems}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 질문 목록 */}
       <div className="space-y-4">

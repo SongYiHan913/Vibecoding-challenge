@@ -4,8 +4,180 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Dashboard
+ *   description: 대시보드 통계 및 요약 정보 API
+ */
+
+/**
+ * @swagger
+ * /api/dashboard/summary:
+ *   get:
+ *     summary: 대시보드 요약 정보 조회
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 대시보드 요약 정보 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total_candidates:
+ *                       type: integer
+ *                       description: 전체 지원자 수
+ *                     active_sessions:
+ *                       type: integer
+ *                       description: 진행 중인 세션 수
+ *                     completed_sessions:
+ *                       type: integer
+ *                       description: 완료된 세션 수
+ *                     average_score:
+ *                       type: number
+ *                       description: 전체 평균 점수
+ */
+
+/**
+ * @swagger
+ * /api/dashboard/statistics:
+ *   get:
+ *     summary: 상세 통계 정보 조회
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: 시작 날짜 (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: 종료 날짜 (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: 통계 정보 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     daily_sessions:
+ *                       type: array
+ *                       description: 일별 세션 통계
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date:
+ *                             type: string
+ *                             format: date
+ *                           count:
+ *                             type: integer
+ *                     category_stats:
+ *                       type: object
+ *                       description: 카테고리별 통계
+ *                     difficulty_stats:
+ *                       type: object
+ *                       description: 난이도별 통계
+ */
+
+/**
+ * @swagger
+ * /api/dashboard/recent-activities:
+ *   get:
+ *     summary: 최근 활동 내역 조회
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 조회할 활동 수
+ *     responses:
+ *       200:
+ *         description: 최근 활동 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       type:
+ *                         type: string
+ *                         enum: [session_start, session_complete, evaluation_added]
+ *                       description:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ */
+
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
+
+// 간단한 통계 정보 제공 (관리자만)
+router.get('/stats', requireAdmin, (req, res) => {
+  const queries = [
+    // 총 지원자 수
+    'SELECT COUNT(*) as totalCandidates FROM users WHERE role = "candidate"',
+    // 총 질문 수  
+    'SELECT COUNT(*) as totalQuestions FROM questions'
+  ];
+
+  const results = {};
+  let completed = 0;
+
+  queries.forEach((query, index) => {
+    db.get(query, [], (err, row) => {
+      if (err) {
+        console.error('통계 조회 오류:', err);
+        return res.status(500).json({
+          success: false,
+          message: '통계 조회 중 오류가 발생했습니다.'
+        });
+      }
+
+      const keys = ['totalCandidates', 'totalQuestions'];
+      results[keys[index]] = Object.values(row)[0] || 0;
+      completed++;
+
+      if (completed === queries.length) {
+        res.json({
+          success: true,
+          data: results
+        });
+      }
+    });
+  });
+});
 
 // 관리자 대시보드 전체 통계 (관리자만)
 router.get('/admin/overview', requireAdmin, (req, res) => {
@@ -115,6 +287,70 @@ router.get('/admin/overview', requireAdmin, (req, res) => {
           }
         });
       }
+    });
+  });
+});
+
+// 최근 활동 조회 (간소화된 엔드포인트)
+router.get('/activities', requireAdmin, (req, res) => {
+  const { limit = 20 } = req.query;
+
+  const query = `
+    SELECT 
+      'registration' as type,
+      u.id as entity_id,
+      u.name as entity_name,
+      u.email as details,
+      u.created_at as timestamp
+    FROM users u
+    WHERE u.role = 'candidate'
+    
+    UNION ALL
+    
+    SELECT 
+      'test_completed' as type,
+      ts.candidate_id as entity_id,
+      u.name as entity_name,
+      'Test completed' as details,
+      ts.completed_at as timestamp
+    FROM test_sessions ts
+    JOIN users u ON ts.candidate_id = u.id
+    WHERE ts.status = 'completed' AND ts.completed_at IS NOT NULL
+    
+    UNION ALL
+    
+    SELECT 
+      'evaluation_completed' as type,
+      e.candidate_id as entity_id,
+      u.name as entity_name,
+      CAST(e.total_score as TEXT) || '점' as details,
+      e.evaluated_at as timestamp
+    FROM evaluations e
+    JOIN users u ON e.candidate_id = u.id
+    WHERE e.status = 'completed'
+    
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `;
+
+  db.all(query, [parseInt(limit)], (err, activities) => {
+    if (err) {
+      console.error('최근 활동 조회 오류:', err);
+      return res.status(500).json({
+        success: false,
+        message: '서버 오류가 발생했습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: activities.map(activity => ({
+        type: activity.type,
+        entityId: activity.entity_id,
+        entityName: activity.entity_name,
+        details: activity.details,
+        timestamp: new Date(activity.timestamp)
+      }))
     });
   });
 });

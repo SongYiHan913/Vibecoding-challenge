@@ -73,8 +73,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </header>
 
       <div className="flex">
-        {/* 사이드바 */}
-        <nav className="w-64 bg-white shadow-sm min-h-screen">
+        {/* 사이드바 - 고정 너비 유지 */}
+        <nav className="min-w-64 w-64 flex-shrink-0 bg-white shadow-sm min-h-screen">
           <div className="p-4">
             <ul className="space-y-2">
               <li>
@@ -106,15 +106,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   href={ROUTES.ADMIN_RESULTS}
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                 >
-                  📋 평가 결과
+                  📋 채점 관리
                 </Link>
               </li>
             </ul>
           </div>
         </nav>
 
-        {/* 메인 컨텐츠 */}
-        <main className="flex-1 p-8">
+        {/* 메인 컨텐츠 - 반응형 지원 */}
+        <main className="flex-1 min-w-0 p-8 overflow-x-auto">
           {children}
         </main>
       </div>

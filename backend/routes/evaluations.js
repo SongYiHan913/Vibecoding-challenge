@@ -2,14 +2,273 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { performAutoEvaluation, performTestCompletionEvaluation } = require('../utils/evaluation');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * tags:
+ *   name: Evaluations
+ *   description: 면접 평가 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Evaluation:
+ *       type: object
+ *       required:
+ *         - test_session_id
+ *         - question_id
+ *         - score
+ *         - feedback
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: 평가 ID
+ *         test_session_id:
+ *           type: integer
+ *           description: 면접 세션 ID
+ *         question_id:
+ *           type: integer
+ *           description: 질문 ID
+ *         score:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *           description: 평가 점수 (1-5)
+ *         feedback:
+ *           type: string
+ *           description: 평가 피드백
+ *         evaluator_notes:
+ *           type: string
+ *           description: 평가자 메모
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: 생성 일시
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: 수정 일시
+ */
+
+/**
+ * @swagger
+ * /api/evaluations:
+ *   get:
+ *     summary: 모든 평가 목록 조회
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: test_session_id
+ *         schema:
+ *           type: integer
+ *         description: 면접 세션 ID로 필터링
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 페이지당 항목 수
+ *     responses:
+ *       200:
+ *         description: 평가 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Evaluation'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *
+ *   post:
+ *     summary: 새 평가 등록
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - test_session_id
+ *               - question_id
+ *               - score
+ *               - feedback
+ *             properties:
+ *               test_session_id:
+ *                 type: integer
+ *               question_id:
+ *                 type: integer
+ *               score:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               feedback:
+ *                 type: string
+ *               evaluator_notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 평가 등록 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 세션 또는 질문을 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/evaluations/{id}:
+ *   get:
+ *     summary: 특정 평가 조회
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 평가 ID
+ *     responses:
+ *       200:
+ *         description: 평가 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Evaluation'
+ *       404:
+ *         description: 평가를 찾을 수 없음
+ *
+ *   put:
+ *     summary: 평가 수정
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 평가 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               score:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               feedback:
+ *                 type: string
+ *               evaluator_notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 평가 수정 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 평가를 찾을 수 없음
+ *
+ *   delete:
+ *     summary: 평가 삭제
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 평가 ID
+ *     responses:
+ *       200:
+ *         description: 평가 삭제 성공
+ *       404:
+ *         description: 평가를 찾을 수 없음
+ */
+
+/**
+ * @swagger
+ * /api/evaluations/session/{sessionId}/summary:
+ *   get:
+ *     summary: 면접 세션의 평가 요약 조회
+ *     tags: [Evaluations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 면접 세션 ID
+ *     responses:
+ *       200:
+ *         description: 평가 요약 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     average_score:
+ *                       type: number
+ *                       description: 평균 점수
+ *                     total_questions:
+ *                       type: integer
+ *                       description: 총 질문 수
+ *                     evaluated_questions:
+ *                       type: integer
+ *                       description: 평가 완료된 질문 수
+ *                     category_scores:
+ *                       type: object
+ *                       description: 카테고리별 평균 점수
+ *       404:
+ *         description: 세션을 찾을 수 없음
+ */
 
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
 
 // 평가 생성 (관리자만)
-router.post('/', requireAdmin, (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const { candidateId, testSessionId } = req.body;
   const evaluatorId = req.user.userId;
 
@@ -20,193 +279,65 @@ router.post('/', requireAdmin, (req, res) => {
     });
   }
 
-  // 테스트 세션과 답안 조회
-  db.get(
-    `SELECT ts.*, u.applied_field, u.experience 
-     FROM test_sessions ts 
-     JOIN users u ON ts.candidate_id = u.id 
-     WHERE ts.id = ? AND ts.candidate_id = ? AND ts.status = 'completed'`,
-    [testSessionId, candidateId],
-    (err, session) => {
-      if (err) {
-        console.error('테스트 세션 조회 오류:', err);
-        return res.status(500).json({
-          success: false,
-          message: '서버 오류가 발생했습니다.'
-        });
-      }
+  try {
+    // 테스트 세션과 답안 조회
+    const session = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT ts.*, u.applied_field, u.experience 
+         FROM test_sessions ts 
+         JOIN users u ON ts.candidate_id = u.id 
+         WHERE ts.id = ? AND ts.candidate_id = ? AND ts.status = 'completed'`,
+        [testSessionId, candidateId],
+        (err, session) => {
+          if (err) reject(err);
+          else resolve(session);
+        }
+      );
+    });
 
-      if (!session) {
-        return res.status(404).json({
-          success: false,
-          message: '완료된 테스트 세션을 찾을 수 없습니다.'
-        });
-      }
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: '완료된 테스트 세션을 찾을 수 없습니다.'
+      });
+    }
 
-      // 이미 평가가 있는지 확인
+    // 이미 평가가 있는지 확인
+    const existingEvaluation = await new Promise((resolve, reject) => {
       db.get(
         'SELECT id FROM evaluations WHERE test_session_id = ?',
         [testSessionId],
-        (err, existingEvaluation) => {
-          if (err) {
-            console.error('기존 평가 확인 오류:', err);
-            return res.status(500).json({
-              success: false,
-              message: '서버 오류가 발생했습니다.'
-            });
-          }
-
-          if (existingEvaluation) {
-            return res.status(400).json({
-              success: false,
-              message: '이미 평가가 완료된 테스트입니다.'
-            });
-          }
-
-          // 자동 평가 수행
-          performAutoEvaluation(session, evaluatorId, (err, evaluationResult) => {
-            if (err) {
-              console.error('자동 평가 오류:', err);
-              return res.status(500).json({
-                success: false,
-                message: '평가 처리 중 오류가 발생했습니다.'
-              });
-            }
-
-            res.status(201).json({
-              success: true,
-              message: '평가가 완료되었습니다.',
-              data: evaluationResult
-            });
-          });
+        (err, evaluation) => {
+          if (err) reject(err);
+          else resolve(evaluation);
         }
       );
-    }
-  );
-});
-
-// 자동 평가 함수
-function performAutoEvaluation(session, evaluatorId, callback) {
-  const questions = JSON.parse(session.questions);
-  const answers = JSON.parse(session.answers || '{}');
-  
-  let technicalScore = 0;
-  let personalityScore = 0;
-  let problemSolvingScore = 0;
-  let maxTechnicalScore = 0;
-  let maxPersonalityScore = 0;
-  let maxProblemSolvingScore = 0;
-
-  const detailedResults = [];
-
-  // 각 질문별 채점
-  questions.forEach(question => {
-    const userAnswer = answers[question.id];
-    let score = 0;
-    let maxScore = question.points;
-
-    if (userAnswer) {
-      if (question.format === 'multiple-choice') {
-        // 객관식 채점
-        if (userAnswer.answer === question.correct_answer) {
-          score = maxScore;
-        }
-      } else if (question.format === 'essay') {
-        // 주관식 채점 (키워드 기반)
-        if (question.required_keywords && userAnswer.answerText) {
-          const keywords = JSON.parse(question.required_keywords);
-          const answerText = userAnswer.answerText.toLowerCase();
-          const matchedKeywords = keywords.filter(keyword => 
-            answerText.includes(keyword.toLowerCase())
-          );
-          score = Math.round((matchedKeywords.length / keywords.length) * maxScore);
-        }
-      }
-    }
-
-    // 타입별 점수 집계
-    switch (question.type) {
-      case 'technical':
-        technicalScore += score;
-        maxTechnicalScore += maxScore;
-        break;
-      case 'personality':
-        personalityScore += score;
-        maxPersonalityScore += maxScore;
-        break;
-      case 'problem-solving':
-        problemSolvingScore += score;
-        maxProblemSolvingScore += maxScore;
-        break;
-    }
-
-    detailedResults.push({
-      questionId: question.id,
-      type: question.type,
-      question: question.question,
-      userAnswer: userAnswer || null,
-      correctAnswer: question.correct_answer || question.correct_answer_text,
-      score,
-      maxScore,
-      points: question.points
     });
-  });
 
-  // 백분율 점수 계산
-  const technicalPercent = maxTechnicalScore > 0 ? (technicalScore / maxTechnicalScore) * 100 : 0;
-  const personalityPercent = maxPersonalityScore > 0 ? (personalityScore / maxPersonalityScore) * 100 : 0;
-  const problemSolvingPercent = maxProblemSolvingScore > 0 ? (problemSolvingScore / maxProblemSolvingScore) * 100 : 0;
-
-  // 가중치 적용하여 총점 계산 (기술 40%, 인성 20%, 문제해결 40%)
-  const totalScore = (technicalPercent * 0.4) + (personalityPercent * 0.2) + (problemSolvingPercent * 0.4);
-
-  const evaluationId = uuidv4();
-
-  // 평가 결과 저장
-  db.run(
-    `INSERT INTO evaluations (
-      id, candidate_id, test_session_id, technical_score, personality_score, 
-      problem_solving_score, total_score, detailed_results, evaluated_at, 
-      evaluated_by, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, 'completed', datetime('now'), datetime('now'))`,
-    [
-      evaluationId, session.candidate_id, session.id,
-      Math.round(technicalPercent * 100) / 100,
-      Math.round(personalityPercent * 100) / 100,
-      Math.round(problemSolvingPercent * 100) / 100,
-      Math.round(totalScore * 100) / 100,
-      JSON.stringify(detailedResults),
-      evaluatorId
-    ],
-    function(err) {
-      if (err) {
-        return callback(err);
-      }
-
-      // 지원자 상태 업데이트
-      db.run(
-        'UPDATE users SET status = "evaluated", updated_at = datetime("now") WHERE id = ?',
-        [session.candidate_id],
-        (updateErr) => {
-          if (updateErr) {
-            console.error('지원자 상태 업데이트 오류:', updateErr);
-          }
-
-          callback(null, {
-            id: evaluationId,
-            candidateId: session.candidate_id,
-            testSessionId: session.id,
-            technicalScore: Math.round(technicalPercent * 100) / 100,
-            personalityScore: Math.round(personalityPercent * 100) / 100,
-            problemSolvingScore: Math.round(problemSolvingPercent * 100) / 100,
-            totalScore: Math.round(totalScore * 100) / 100,
-            status: 'completed'
-          });
-        }
-      );
+    if (existingEvaluation) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 평가가 완료된 테스트입니다.'
+      });
     }
-  );
-}
+
+    // 자동 평가 수행
+    const evaluationResult = await performAutoEvaluation(session, evaluatorId);
+    
+    res.status(201).json({
+      success: true,
+      message: '평가가 완료되었습니다.',
+      data: evaluationResult
+    });
+
+  } catch (error) {
+    console.error('평가 처리 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '평가 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
 
 // 평가 목록 조회 (관리자만)
 router.get('/', requireAdmin, (req, res) => {
@@ -384,5 +515,188 @@ router.patch('/:id/notes', requireAdmin, (req, res) => {
     }
   );
 });
+
+// 평가 점수 수정 (관리자만)
+router.patch('/:id/scores', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { detailedResults, notes, finalizeGrading = false } = req.body;
+  const evaluatorId = req.user.userId;
+
+  if (!detailedResults || !Array.isArray(detailedResults)) {
+    return res.status(400).json({
+      success: false,
+      message: '세부 평가 결과가 필요합니다.'
+    });
+  }
+
+  // 기존 평가 정보 조회
+  db.get(
+    'SELECT * FROM evaluations WHERE id = ?',
+    [id],
+    (err, evaluation) => {
+      if (err) {
+        console.error('평가 조회 오류:', err);
+        return res.status(500).json({
+          success: false,
+          message: '서버 오류가 발생했습니다.'
+        });
+      }
+
+      if (!evaluation) {
+        return res.status(404).json({
+          success: false,
+          message: '평가를 찾을 수 없습니다.'
+        });
+      }
+
+      // 기존 세부 결과 파싱
+      const existingResults = evaluation.detailed_results ? JSON.parse(evaluation.detailed_results) : [];
+      
+      // 점수 검증 및 계산
+      let technicalScore = 0;
+      let personalityScore = 0;
+      let problemSolvingScore = 0;
+      let technicalTotal = 0;
+      let personalityTotal = 0;
+      let problemSolvingTotal = 0;
+
+      // 각 문제별 점수 검증
+      for (const result of detailedResults) {
+        const { questionId, score, maxScore, type } = result;
+        
+        if (score > maxScore) {
+          return res.status(400).json({
+            success: false,
+            message: `문제 ${questionId}의 점수가 최대 점수를 초과했습니다. (${score}/${maxScore})`
+          });
+        }
+
+        if (score < 0) {
+          return res.status(400).json({
+            success: false,
+            message: `문제 ${questionId}의 점수는 0 이상이어야 합니다.`
+          });
+        }
+
+        // 타입별 점수 누적
+        if (type === 'technical') {
+          technicalScore += score;
+          technicalTotal += maxScore;
+        } else if (type === 'personality') {
+          personalityScore += score;
+          personalityTotal += maxScore;
+        } else if (type === 'problem-solving') {
+          problemSolvingScore += score;
+          problemSolvingTotal += maxScore;
+        }
+      }
+
+      // 백분율 계산
+      const technicalPercent = technicalTotal > 0 ? (technicalScore / technicalTotal) * 100 : 0;
+      const personalityPercent = personalityTotal > 0 ? (personalityScore / personalityTotal) * 100 : 0;
+      const problemSolvingPercent = problemSolvingTotal > 0 ? (problemSolvingScore / problemSolvingTotal) * 100 : 0;
+
+      // 전체 점수 계산 (가중 평균)
+      const TECHNICAL_WEIGHT = 0.4;
+      const PERSONALITY_WEIGHT = 0.3;
+      const PROBLEM_SOLVING_WEIGHT = 0.3;
+
+      const totalScore = 
+        (technicalPercent * TECHNICAL_WEIGHT) +
+        (personalityPercent * PERSONALITY_WEIGHT) +
+        (problemSolvingPercent * PROBLEM_SOLVING_WEIGHT);
+
+      // 평가 결과 업데이트
+      db.run(
+        `UPDATE evaluations SET 
+          technical_score = ?, 
+          personality_score = ?, 
+          problem_solving_score = ?, 
+          total_score = ?, 
+          detailed_results = ?, 
+          notes = ?, 
+          evaluated_by = ?, 
+          updated_at = datetime('now')
+        WHERE id = ?`,
+        [
+          Math.round(technicalPercent * 100) / 100,
+          Math.round(personalityPercent * 100) / 100,
+          Math.round(problemSolvingPercent * 100) / 100,
+          Math.round(totalScore * 100) / 100,
+          JSON.stringify(detailedResults),
+          notes || evaluation.notes,
+          evaluatorId,
+          id
+        ],
+        function(err) {
+          if (err) {
+            console.error('평가 점수 수정 오류:', err);
+            return res.status(500).json({
+              success: false,
+              message: '점수 수정 중 오류가 발생했습니다.'
+            });
+          }
+
+          if (this.changes === 0) {
+            return res.status(404).json({
+              success: false,
+              message: '평가를 찾을 수 없습니다.'
+            });
+          }
+
+          // 채점 완료 처리
+          if (finalizeGrading) {
+            // test_session 상태를 terminated로 변경
+            db.run(
+              `UPDATE test_sessions SET 
+                status = 'terminated', 
+                terminated_at = datetime('now'),
+                termination_reason = 'grading_completed',
+                updated_at = datetime('now')
+              WHERE id = ?`,
+              [evaluation.test_session_id],
+              function(err) {
+                if (err) {
+                  console.error('테스트 세션 상태 변경 오류:', err);
+                  return res.status(500).json({
+                    success: false,
+                    message: '채점 완료 처리 중 오류가 발생했습니다.'
+                  });
+                }
+
+                res.json({
+                  success: true,
+                  message: '채점이 완료되었습니다.',
+                  data: {
+                    technicalScore: Math.round(technicalPercent * 100) / 100,
+                    personalityScore: Math.round(personalityPercent * 100) / 100,
+                    problemSolvingScore: Math.round(problemSolvingPercent * 100) / 100,
+                    totalScore: Math.round(totalScore * 100) / 100,
+                    status: 'terminated',
+                    updatedAt: new Date()
+                  }
+                });
+              }
+            );
+          } else {
+            res.json({
+              success: true,
+              message: '평가 점수가 수정되었습니다.',
+              data: {
+                technicalScore: Math.round(technicalPercent * 100) / 100,
+                personalityScore: Math.round(personalityPercent * 100) / 100,
+                problemSolvingScore: Math.round(problemSolvingPercent * 100) / 100,
+                totalScore: Math.round(totalScore * 100) / 100,
+                updatedAt: new Date()
+              }
+            });
+          }
+        }
+      );
+    }
+  );
+});
+
+
 
 module.exports = router; 

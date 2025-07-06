@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { TestSession, Question, TestAnswer } from '@/types';
-import { Timer } from '@/utils';
 
 interface TestState {
   currentSession: TestSession | null;
@@ -8,14 +7,13 @@ interface TestState {
   currentQuestion: Question | null;
   questions: Question[];
   answers: TestAnswer[];
-  timer: Timer | null;
   remainingTime: number;
   isTestActive: boolean;
   focusLostCount: number;
   isSubmitting: boolean;
   
   // Actions
-  startTest: (session: TestSession, questions: Question[]) => void;
+  startTest: (sessionId: string, questions: Question[]) => void;
   setCurrentQuestion: (index: number) => void;
   submitAnswer: (questionId: string, answer: string | number) => void;
   nextQuestion: () => void;
@@ -25,6 +23,7 @@ interface TestState {
   finishTest: () => void;
   updateRemainingTime: (time: number) => void;
   incrementFocusLost: () => void;
+  setFocusLostCount: (count: number) => void;
   setSubmitting: (submitting: boolean) => void;
   resetTest: () => void;
 }
@@ -35,32 +34,34 @@ export const useTestStore = create<TestState>((set, get) => ({
   currentQuestion: null,
   questions: [],
   answers: [],
-  timer: null,
   remainingTime: 0,
   isTestActive: false,
   focusLostCount: 0,
   isSubmitting: false,
 
-  startTest: (session: TestSession, questions: Question[]) => {
-    const timer = new Timer(
-      session.remainingTime,
-      (time) => get().updateRemainingTime(time),
-      () => get().finishTest()
-    );
+  startTest: (sessionId: string, questions: Question[]) => {
+    const initialTime = 90 * 60; // 90분을 초로 변환
 
     set({
-      currentSession: session,
+      currentSession: {
+        id: sessionId,
+        candidateId: '',
+        status: 'in-progress',
+        questions: questions.map(q => q.id),
+        answers: [],
+        remainingTime: initialTime,
+        totalTime: initialTime,
+        cheatingAttempts: 0,
+        focusLostCount: 0,
+      } as TestSession,
       questions,
       currentQuestionIndex: 0,
       currentQuestion: questions[0] || null,
-      answers: session.answers,
-      timer,
-      remainingTime: session.remainingTime,
+      answers: [],
+      remainingTime: initialTime,
       isTestActive: true,
-      focusLostCount: session.focusLostCount,
+      focusLostCount: 0,
     });
-
-    timer.start();
   },
 
   setCurrentQuestion: (index: number) => {
@@ -74,14 +75,25 @@ export const useTestStore = create<TestState>((set, get) => ({
   },
 
   submitAnswer: (questionId: string, answer: string | number) => {
-    const { answers, currentSession } = get();
-    const existingAnswerIndex = answers.findIndex(a => a.questionId === questionId);
+    const { answers, currentSession, questions } = get();
+    const existingAnswerIndex = answers.findIndex(a => a.id === questionId);
+    
+    // questionOrder 찾기
+    const questionIndex = questions.findIndex(q => q.id === questionId);
+    const questionOrder = questionIndex !== -1 ? questionIndex + 1 : undefined;
+    
     const newAnswer: TestAnswer = {
-      questionId,
-      answer,
-      answeredAt: new Date(),
-      timeTaken: 0, // 실제로는 시작 시간부터 계산해야 함
+      id: questionId,
+      questionOrder,
+      submittedAt: new Date().toISOString(),
     };
+    
+    // 답안 타입에 따라 적절한 필드만 설정
+    if (typeof answer === 'number') {
+      newAnswer.answer = answer; // 객관식
+    } else if (typeof answer === 'string' && answer.trim()) {
+      newAnswer.answerText = answer.trim(); // 주관식
+    }
 
     let updatedAnswers;
     if (existingAnswerIndex >= 0) {
@@ -90,6 +102,9 @@ export const useTestStore = create<TestState>((set, get) => ({
     } else {
       updatedAnswers = [...answers, newAnswer];
     }
+    
+    // questionOrder 순으로 정렬
+    updatedAnswers.sort((a, b) => (a.questionOrder || 0) - (b.questionOrder || 0));
 
     set({
       answers: updatedAnswers,
@@ -115,20 +130,14 @@ export const useTestStore = create<TestState>((set, get) => ({
   },
 
   pauseTest: () => {
-    const { timer } = get();
-    timer?.stop();
     set({ isTestActive: false });
   },
 
   resumeTest: () => {
-    const { timer } = get();
-    timer?.start();
     set({ isTestActive: true });
   },
 
   finishTest: () => {
-    const { timer } = get();
-    timer?.stop();
     set({
       isTestActive: false,
       currentSession: get().currentSession ? {
@@ -155,20 +164,28 @@ export const useTestStore = create<TestState>((set, get) => ({
     });
   },
 
+  setFocusLostCount: (count: number) => {
+    const { currentSession } = get();
+    set({
+      focusLostCount: count,
+      currentSession: currentSession ? {
+        ...currentSession,
+        focusLostCount: count,
+      } : null,
+    });
+  },
+
   setSubmitting: (submitting: boolean) => {
     set({ isSubmitting: submitting });
   },
 
   resetTest: () => {
-    const { timer } = get();
-    timer?.stop();
     set({
       currentSession: null,
       currentQuestionIndex: 0,
       currentQuestion: null,
       questions: [],
       answers: [],
-      timer: null,
       remainingTime: 0,
       isTestActive: false,
       focusLostCount: 0,

@@ -8,6 +8,223 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Questions
+ *   description: 면접 질문 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Question:
+ *       type: object
+ *       required:
+ *         - title
+ *         - content
+ *         - category
+ *         - difficulty
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: 질문 ID
+ *         title:
+ *           type: string
+ *           description: 질문 제목
+ *         content:
+ *           type: string
+ *           description: 질문 내용
+ *         category:
+ *           type: string
+ *           enum: [technical, personality, problem_solving]
+ *           description: 질문 카테고리
+ *         difficulty:
+ *           type: string
+ *           enum: [easy, medium, hard]
+ *           description: 난이도
+ *         expected_answer:
+ *           type: string
+ *           description: 예상 답변
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: 생성 일시
+ */
+
+/**
+ * @swagger
+ * /api/questions:
+ *   get:
+ *     summary: 모든 면접 질문 목록 조회
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: 질문 카테고리 필터
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *         description: 난이도 필터
+ *     responses:
+ *       200:
+ *         description: 질문 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Question'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *
+ *   post:
+ *     summary: 새 면접 질문 등록
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *               - category
+ *               - difficulty
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [technical, personality, problem_solving]
+ *               difficulty:
+ *                 type: string
+ *                 enum: [easy, medium, hard]
+ *               expected_answer:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 질문 등록 성공
+ *       400:
+ *         description: 잘못된 요청
+ */
+
+/**
+ * @swagger
+ * /api/questions/{id}:
+ *   get:
+ *     summary: 특정 면접 질문 조회
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 질문 ID
+ *     responses:
+ *       200:
+ *         description: 질문 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Question'
+ *       404:
+ *         description: 질문을 찾을 수 없음
+ *
+ *   put:
+ *     summary: 면접 질문 수정
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 질문 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [technical, personality, problem_solving]
+ *               difficulty:
+ *                 type: string
+ *                 enum: [easy, medium, hard]
+ *               expected_answer:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 질문 수정 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 질문을 찾을 수 없음
+ *
+ *   delete:
+ *     summary: 면접 질문 삭제
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 질문 ID
+ *     responses:
+ *       200:
+ *         description: 질문 삭제 성공
+ *       404:
+ *         description: 질문을 찾을 수 없음
+ */
+
 // uploads/questions 디렉토리 존재 확인 및 생성
 const uploadsDir = 'uploads/questions/';
 if (!fs.existsSync(uploadsDir)) {
@@ -35,7 +252,7 @@ router.use(authenticateToken);
 
 // 질문 목록 조회
 router.get('/', (req, res) => {
-  const { page = 1, limit = 10, type, difficulty, field, format } = req.query;
+  const { page = 1, limit = 10, type, difficulty, field, format, search } = req.query;
   const offset = (page - 1) * limit;
 
   let query = 'SELECT * FROM questions';
@@ -62,6 +279,12 @@ router.get('/', (req, res) => {
   if (format) {
     conditions.push('format = ?');
     params.push(format);
+  }
+
+  // 검색 조건 추가 (question 내용에서 LIKE 검색)
+  if (search) {
+    conditions.push('question LIKE ?');
+    params.push(`%${search}%`);
   }
 
   if (conditions.length > 0) {
@@ -100,9 +323,19 @@ router.get('/', (req, res) => {
         success: true,
         data: {
           questions: questions.map(question => ({
-            ...question,
+            id: question.id,
+            type: question.type,
+            format: question.format,
+            difficulty: question.difficulty,
+            experienceLevel: question.experience_level,
+            field: question.field,
+            category: question.category,
+            question: question.question,
             options: question.options ? JSON.parse(question.options) : null,
+            correctAnswer: question.correct_answer,
+            correctAnswerText: question.correct_answer_text,
             requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+            points: question.points,
             createdAt: new Date(question.created_at),
             updatedAt: new Date(question.updated_at)
           })),
@@ -205,6 +438,17 @@ function handleFileUpload(req, res) {
       // ID가 있으면 사용하고, 없으면 새로 생성
       const questionId = id || uuidv4();
 
+      // correctAnswer 처리 - 0-based에서 1-based로 변환
+      let processedCorrectAnswer = null;
+      if (format === 'multiple-choice' && correctAnswer !== null && correctAnswer !== undefined) {
+        // 0-based index를 1-based index로 변환
+        processedCorrectAnswer = parseInt(correctAnswer) + 1;
+        console.log(`📝 질문 ${index + 1}: correctAnswer 변환 ${correctAnswer} → ${processedCorrectAnswer}`);
+      } else if (format === 'essay') {
+        // 서술형 질문은 correctAnswer가 null이어야 함
+        processedCorrectAnswer = null;
+      }
+
       db.run(
         `INSERT INTO questions (
           id, type, format, difficulty, experience_level, field, category,
@@ -215,7 +459,7 @@ function handleFileUpload(req, res) {
           questionId, type, format, difficulty, experienceLevel, field, category,
           question,
           options ? JSON.stringify(options) : null,
-          correctAnswer || null,
+          processedCorrectAnswer,
           correctAnswerText || null,
           requiredKeywords ? JSON.stringify(requiredKeywords) : null,
           points
@@ -295,9 +539,19 @@ router.get('/:id', (req, res) => {
     res.json({
       success: true,
       data: {
-        ...question,
+        id: question.id,
+        type: question.type,
+        format: question.format,
+        difficulty: question.difficulty,
+        experienceLevel: question.experience_level,
+        field: question.field,
+        category: question.category,
+        question: question.question,
         options: question.options ? JSON.parse(question.options) : null,
+        correctAnswer: question.correct_answer,
+        correctAnswerText: question.correct_answer_text,
         requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+        points: question.points,
         createdAt: new Date(question.created_at),
         updatedAt: new Date(question.updated_at)
       }
@@ -343,59 +597,191 @@ router.post('/generate-test', requireAdmin, (req, res) => {
     });
   }
 
-  // 질문 구성: 기술 5개, 인성 3개, 문제해결 2개 (총 10개)
-  const questionCounts = {
-    technical: 5,
-    personality: 3,
-    'problem-solving': 2
+  // 새로운 질문 구성: 총 25문제
+  // 기술 10개 (4지선다 6개 + 서술형 4개), 인성 5개 (서술형), 문제해결 10개 (서술형)
+  const questionConfig = {
+    technical: {
+      total: 10,
+      'multiple-choice': 6,
+      essay: 4
+    },
+    personality: {
+      total: 5,
+      essay: 5
+    },
+    'problem-solving': {
+      total: 10,
+      essay: 10
+    }
+  };
+
+  // 난이도 비율: 쉬움 30%, 보통 50%, 어려움 20%
+  const difficultyDistribution = {
+    easy: 0.3,
+    medium: 0.5,
+    hard: 0.2
   };
 
   const selectedQuestions = [];
   let completed = 0;
-  const totalTypes = Object.keys(questionCounts).length;
+  const totalTypes = Object.keys(questionConfig).length;
 
-  Object.entries(questionCounts).forEach(([type, count]) => {
-    let query;
-    const params = [type, experienceLevel];
+  // 분야별 순서로 질문 선택: 기술 → 인성 → 문제해결
+  const processQuestionType = (type, config) => {
+    const promises = [];
 
     if (type === 'technical') {
-      // 기술 질문은 지원 분야에 맞게
-      query = 'SELECT * FROM questions WHERE type = ? AND experience_level = ? AND (field = ? OR field = "common") ORDER BY RANDOM() LIMIT ?';
-      params.push(appliedField, count);
+      // 기술 질문: 4지선다와 서술형 분리해서 선택
+      const mcCount = config['multiple-choice'];
+      const essayCount = config.essay;
+
+      // 4지선다 기술 질문
+      promises.push(new Promise((resolve, reject) => {
+        selectQuestionsByDifficulty(type, 'multiple-choice', appliedField, experienceLevel, mcCount, difficultyDistribution)
+          .then(questions => {
+            selectedQuestions.push(...questions.map(q => ({ ...q, questionOrder: selectedQuestions.length + 1 })));
+            resolve();
+          })
+          .catch(reject);
+      }));
+
+      // 서술형 기술 질문
+      promises.push(new Promise((resolve, reject) => {
+        selectQuestionsByDifficulty(type, 'essay', appliedField, experienceLevel, essayCount, difficultyDistribution)
+          .then(questions => {
+            selectedQuestions.push(...questions.map(q => ({ ...q, questionOrder: selectedQuestions.length + 1 })));
+            resolve();
+          })
+          .catch(reject);
+      }));
+
     } else {
-      // 인성, 문제해결 질문은 공통
-      query = 'SELECT * FROM questions WHERE type = ? AND experience_level = ? AND (field = "common" OR field IS NULL) ORDER BY RANDOM() LIMIT ?';
-      params.push(count);
+      // 인성, 문제해결: 서술형만
+      promises.push(new Promise((resolve, reject) => {
+        selectQuestionsByDifficulty(type, 'essay', null, experienceLevel, config.total, difficultyDistribution)
+          .then(questions => {
+            selectedQuestions.push(...questions.map(q => ({ ...q, questionOrder: selectedQuestions.length + 1 })));
+            resolve();
+          })
+          .catch(reject);
+      }));
     }
 
-    db.all(query, params, (err, questions) => {
-      if (err) {
-        console.error(`${type} 질문 조회 오류:`, err);
-        return res.status(500).json({
-          success: false,
-          message: '질문 생성 중 오류가 발생했습니다.'
-        });
-      }
+    return Promise.all(promises);
+  };
 
-      selectedQuestions.push(...questions);
-      completed++;
+  // 순차적으로 분야별 질문 선택
+  const selectAllQuestions = async () => {
+    try {
+      // 1. 기술 질문 선택
+      await processQuestionType('technical', questionConfig.technical);
+      
+      // 2. 인성 질문 선택
+      await processQuestionType('personality', questionConfig.personality);
+      
+      // 3. 문제해결 질문 선택
+      await processQuestionType('problem-solving', questionConfig['problem-solving']);
 
-      if (completed === totalTypes) {
-        // 모든 타입의 질문 수집 완료
-        res.json({
-          success: true,
-          data: {
-            questions: selectedQuestions.map(question => ({
-              ...question,
-              options: question.options ? JSON.parse(question.options) : null,
-              requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null
-            })),
-            totalQuestions: selectedQuestions.length
+      // 질문 순서 정렬
+      selectedQuestions.sort((a, b) => a.questionOrder - b.questionOrder);
+
+      res.json({
+        success: true,
+        data: {
+          questions: selectedQuestions.map(question => ({
+            id: question.id,
+            type: question.type,
+            format: question.format,
+            difficulty: question.difficulty,
+            experienceLevel: question.experience_level,
+            field: question.field,
+            category: question.category,
+            question: question.question,
+            options: question.options ? JSON.parse(question.options) : null,
+            correctAnswer: question.correct_answer,
+            correctAnswerText: question.correct_answer_text,
+            requiredKeywords: question.required_keywords ? JSON.parse(question.required_keywords) : null,
+            points: question.points,
+            createdAt: new Date(question.created_at),
+            updatedAt: new Date(question.updated_at)
+          })),
+          totalQuestions: selectedQuestions.length,
+          distribution: {
+            technical: questionConfig.technical.total,
+            personality: questionConfig.personality.total,
+            problemSolving: questionConfig['problem-solving'].total,
+            total: 25
           }
-        });
+        }
+      });
+
+    } catch (error) {
+      console.error('질문 선택 오류:', error);
+      res.status(500).json({
+        success: false,
+        message: '질문 생성 중 오류가 발생했습니다.',
+        error: error.message
+      });
+    }
+  };
+
+  selectAllQuestions();
+});
+
+// 난이도별 질문 선택 헬퍼 함수
+function selectQuestionsByDifficulty(type, format, field, experienceLevel, totalCount, difficultyDist) {
+  return new Promise((resolve, reject) => {
+    // 난이도별 개수 계산
+    const easyCount = Math.round(totalCount * difficultyDist.easy);
+    const mediumCount = Math.round(totalCount * difficultyDist.medium);
+    const hardCount = totalCount - easyCount - mediumCount; // 나머지
+
+    const difficulties = [
+      { level: 'easy', count: easyCount },
+      { level: 'medium', count: mediumCount },
+      { level: 'hard', count: hardCount }
+    ];
+
+    const selectedQuestions = [];
+    let completedDifficulties = 0;
+
+    difficulties.forEach(({ level, count }) => {
+      if (count === 0) {
+        completedDifficulties++;
+        if (completedDifficulties === difficulties.length) {
+          resolve(selectedQuestions);
+        }
+        return;
       }
+
+      let query = 'SELECT * FROM questions WHERE type = ? AND format = ? AND difficulty = ? AND experience_level = ?';
+      const params = [type, format, level, experienceLevel];
+
+      if (type === 'technical' && field) {
+        query += ' AND (field = ? OR field = "common")';
+        params.push(field);
+      } else if (type !== 'technical') {
+        query += ' AND (field = "common" OR field IS NULL)';
+      }
+
+      query += ' ORDER BY RANDOM() LIMIT ?';
+      params.push(count);
+
+      db.all(query, params, (err, questions) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        selectedQuestions.push(...questions);
+        completedDifficulties++;
+
+        if (completedDifficulties === difficulties.length) {
+          resolve(selectedQuestions);
+        }
+      });
     });
   });
-});
+}
 
 module.exports = router; 

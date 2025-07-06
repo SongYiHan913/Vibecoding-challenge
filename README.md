@@ -2,6 +2,10 @@
 
 개발자의 기술 역량, 인성, 문제 해결 능력을 평가하는 온라인 면접 플랫폼입니다.
 
+* 활용 AI
+  - ChatGPT Pro : 일반적인 질의 응답, 설계, 프롬프트 템플릿을 통한 면접 문제 출제
+  - Cursor AI (claude-4-sonnet) : 시스템 설계 및 구현, 문서화
+
 ## 🎯 프로젝트 상태
 
 ### ✅ 완료된 기능
@@ -10,19 +14,51 @@
 - **프론트엔드**: Next.js 15 + TypeScript + Tailwind CSS
 - **데이터베이스**: SQLite 스키마 및 자동 초기화
 - **인증 시스템**: JWT 기반 로그인/회원가입 (오류 해결 완료)
-- **관리자 로그인**: 테스트 완료 ✅
-- **지원자 회원가입/로그인**: 테스트 완료 ✅
-- **데이터베이스 저장**: 회원 정보 정상 저장 확인 ✅
-- **질문 관리 UI**: JSON 업로드, 조회, 삭제 기능 완료 ✅
-- **관리자 대시보드**: 통계 카드, 빠른 액션 메뉴 구현 ✅
-- **지원자 테스트 안내**: 부정행위 방지 안내 및 동의 페이지 ✅
-- **환경 설정**: .env 파일 자동 생성 및 JWT 설정 완료 ✅
+- **관리자 로그인**: 테스트 완료
+- **지원자 회원가입/로그인**: 테스트 완료
+- **데이터베이스 저장**: 회원 정보 정상 저장 확인
+- **질문 관리 UI**: JSON 업로드, 조회, 삭제 기능 완료 
+- **지원자 관리 UI**: 목록 조회, 필터링, 검색, 상세보기, 페이징 기능 완료 
+- **관리자 대시보드**: 통계 카드, 빠른 액션 메뉴 구현 
+- **지원자 테스트 안내**: 부정행위 방지 안내 및 동의 페이지 
+- **환경 설정**: .env 파일 자동 생성 및 JWT 설정 완료 
 
-### 🚧 개발 예정 기능
-- 테스트 세션 진행 UI (실제 문제 풀이 인터페이스)
-- 실시간 평가 시스템
-- 실시간 부정행위 감지 및 차단
-- 상세 통계 및 차트 시각화
+## 생성형 AI 활용
+
+### 1. 요구사항 분석/설계
+
+* 관련 디렉토리
+  * 요구사항 분석 : design/requirement
+  * 설계 문서 : design/design
+  * 상세 설계를 위한 사용자 의사결정 사항 도출 : design/testsession_decisions.md
+
+### 2. 구현
+
+* Nodejs (React Next.js + Node Express) 구조 생성
+* Frontend/backend 소스코드 생성
+* Backend 테스트코드 생성
+
+### 3. 문제 생성
+
+* 지원자 온라인 면접 시 출제할 문제 생성
+* AI 에 질의하기 위한 프롬프트 템플릿 생성
+* 관련 디렉토리
+  - design/questions/README.md
+
+### 4. 프롬프트 히스토리
+
+* 프로젝트 루트의 prompt/*.md 파일들
+
+### 5. IDE 룰셋
+
+* .cursorrules
+* 코드 생성 시 작성 규칙 및 AI tool 선택 옵션 적용
+
+## Github 활용
+
+* Feature branch 를 사용하여 개발된 코드 push 및 develop branch 로 merge request
+* Github issue link 사용 (branch 및 commit message 에 auto-link)
+* 개발 완료 후 main branch 로 merge request
 
 ## 🏗️ 프로젝트 구조
 
@@ -32,7 +68,7 @@
 Vibecoding-challenge/
 ├── server.js              # Express + Next.js 통합 서버
 ├── package.json           # 루트 패키지 설정
-├── .env                   # 환경 변수 (자동 생성) ✅
+├── .env                   # 환경 변수 (자동 생성) 
 ├── .gitignore             # Git 무시 파일
 ├── backend/               # 백엔드 API (완료)
 │   ├── config/
@@ -40,35 +76,36 @@ Vibecoding-challenge/
 │   ├── middleware/
 │   │   └── auth.js        # JWT 인증 미들웨어
 │   ├── routes/            # API 라우트 (8개 완성)
-│   │   ├── auth.js        # 인증 (로그인/회원가입) ✅
-│   │   ├── users.js       # 사용자 관리 ✅
-│   │   ├── candidates.js  # 지원자 관리 ✅
-│   │   ├── questions.js   # 질문 관리 ✅
-│   │   ├── testSessions.js # 테스트 세션 ✅
-│   │   ├── evaluations.js # 평가 관리 ✅
-│   │   ├── dashboard.js   # 대시보드 통계 ✅
-│   │   └── config.js      # 시스템 설정 ✅
+│   │   ├── auth.js        # 인증 (로그인/회원가입) 
+│   │   ├── users.js       # 사용자 관리 
+│   │   ├── candidates.js  # 지원자 관리 
+│   │   ├── questions.js   # 질문 관리 
+│   │   ├── testSessions.js # 테스트 세션 
+│   │   ├── evaluations.js # 평가 관리 
+│   │   ├── dashboard.js   # 대시보드 통계 
+│   │   └── config.js      # 시스템 설정 
 │   └── models/            # 데이터 모델 (향후 확장)
 ├── frontend/              # Next.js 프론트엔드
 │   ├── src/
 │   │   ├── app/           # App Router 페이지
-│   │   │   ├── auth/      # 인증 페이지 ✅
-│   │   │   ├── admin/     # 관리자 페이지 ✅
-│   │   │   │   ├── dashboard/ # 관리자 대시보드 ✅
-│   │   │   │   └── questions/ # 질문 관리 페이지 ✅
-│   │   │   └── candidate/ # 지원자 페이지 ✅
-│   │   │       └── test/  # 테스트 안내 페이지 ✅
+│   │   │   ├── auth/      # 인증 페이지 
+│   │   │   ├── admin/     # 관리자 페이지 
+│   │   │   │   ├── dashboard/ # 관리자 대시보드 
+│   │   │   │   ├── questions/ # 질문 관리 페이지 
+│   │   │   │   └── candidates/ # 지원자 관리 페이지 
+│   │   │   └── candidate/ # 지원자 페이지 
+│   │   │       └── test/  # 테스트 안내 페이지 
 │   │   ├── components/    # React 컴포넌트
-│   │   │   ├── ui/        # 기본 UI 컴포넌트 ✅
-│   │   │   ├── common/    # 공통 컴포넌트 ✅
-│   │   │   └── admin/     # 관리자 전용 컴포넌트 ✅
-│   │   ├── hooks/         # 커스텀 훅 ✅
-│   │   ├── store/         # Zustand 상태 관리 ✅
-│   │   ├── types/         # TypeScript 타입 정의 ✅
-│   │   ├── utils/         # 유틸리티 함수 ✅
-│   │   └── constants/     # 상수 정의 ✅
+│   │   │   ├── ui/        # 기본 UI 컴포넌트 
+│   │   │   ├── common/    # 공통 컴포넌트 
+│   │   │   └── admin/     # 관리자 전용 컴포넌트 
+│   │   ├── hooks/         # 커스텀 훅 
+│   │   ├── store/         # Zustand 상태 관리 
+│   │   ├── types/         # TypeScript 타입 정의 
+│   │   ├── utils/         # 유틸리티 함수 
+│   │   └── constants/     # 상수 정의 
 │   └── package.json       # 프론트엔드 패키지
-├── questions/             # 질문 데이터 파일 ✅
+├── questions/             # 질문 데이터 파일 
 │   ├── interview_questions_csharp_mssql.json
 │   ├── interview_questions_html_js.json
 │   ├── interview_questions_java_mariadb.json
@@ -76,7 +113,7 @@ Vibecoding-challenge/
 │   └── interview_questions_problem_solving.json
 ├── database/              # SQLite 데이터베이스 파일
 │   └── interview.db       # 자동 생성된 DB
-├── uploads/               # 업로드된 파일
+├── prompt/                # 개발에 사용한 프롬프트 모음
 └── design/                # 설계 문서
 ```
 
@@ -84,7 +121,7 @@ Vibecoding-challenge/
 
 ### 1. 의존성 설치
 ```bash
-# 루트 패키지 설치
+# 루트 위치
 npm install
 ```
 
@@ -113,11 +150,41 @@ npm start
 서버는 `http://localhost:3000`에서 실행됩니다.
 
 ### 4. 기본 관리자 계정
-데이터베이스 초기화 시 자동으로 생성되는 관리자 계정:
 ```
 📧 이메일: admin@interview.com
 🔑 비밀번호: admin123!
 ```
+
+### 5. API 문서 (Swagger UI)
+API 엔드포인트들의 상세 명세와 테스트를 위한 Swagger UI를 제공합니다:
+```
+http://localhost:3000/api-docs
+```
+- 모든 API 엔드포인트 목록 확인
+- 요청/응답 스키마 문서화
+- API 실시간 테스트 기능
+- 인증 토큰 설정 및 테스트
+
+### 6. 초기 데이터
+
+SQLLITE DB 데이터파일을 제공합니다.
+데이터 파일에는
+* admin 사용자 계정
+* test 사용자 계정
+* 온라인 면접 질문 90개
+
+가 제공됩니다.
+
+### 7. 부정 방지
+
+지원자가 온라인 면접을 시작한 후 다른 프로그램으로 전환하거나 다른 탭을 열거나, 개발자 도구를 여는 경우 부정 행위로 탐지하고 3회 경고 후 시험을 강제 종료합니다.
+
+브라우저의 보안 제약사항 때문에 매우 정교하게 동작하지는 않습니다.
+
+### 8. 테스트코드
+
+* Backend API 는 Jest 테스트코드가 구현되어 있습니다.
+* Frontend 는 테스트코드가 없으나 Playwright 등의 프레임워크를 활용하여 E2E 테스트를 구성할 수 있습니다.
 
 ## 🎯 현재 사용 가능한 기능
 
@@ -135,6 +202,9 @@ npm start
 - ✅ **질문 상세보기**: 모달을 통한 질문 내용 확인
 - ✅ **질문 삭제**: 개별 질문 삭제 기능
 - ✅ **질문 데이터**: 5개 분야 질문 세트 (C#/SQL, HTML/JS, Java/MariaDB, 인성, 문제해결)
+- ✅ **지원자 관리**: 지원자 목록 조회, 상태별/분야별 필터링, 검색 기능
+- ✅ **지원자 상세보기**: 기본정보, 테스트세션 정보, 평가결과 조회
+- ✅ **페이징 시스템**: 페이지 크기 조정 (5/10/20/50개), 직관적 네비게이션
 
 ### 👨‍💼 지원자 기능
 - ✅ **테스트 안내 페이지**: 부정행위 방지 주의사항 및 면접 안내
@@ -164,6 +234,7 @@ npm start
 - **JWT**: 토큰 기반 인증
 - **bcryptjs**: 비밀번호 해싱
 - **multer**: 파일 업로드
+- **Swagger UI**: API 문서화 및 테스트
 
 ### 프론트엔드
 - **Next.js 15**: React 풀스택 프레임워크
@@ -210,7 +281,7 @@ npm start
 - `POST /api/test-sessions/:id/start` - 테스트 시작
 - `POST /api/test-sessions/:id/answers` - 답안 제출
 - `POST /api/test-sessions/:id/complete` - 테스트 완료
-- `POST /api/test-sessions/:id/cheating` - 부정행위 신고
+- `POST /api/test-sessions/:id/cheating` - 부정행위 등록
 - `GET /api/test-sessions/:id` - 테스트 세션 조회
 
 ### 평가 관리
@@ -258,11 +329,6 @@ npm start
 - 상세 결과: 문항별 채점 결과
 - 메타데이터: 평가자, 평가 일시, 메모
 
-### Test Configs (테스트 설정) ✅
-- 시간 설정: 총 테스트 시간
-- 질문 구성: 타입별 문항 수, 난이도 분포
-- 시스템 설정: 부정행위 허용도
-
 ## 🔒 보안 기능
 
 - ✅ **JWT 인증**: 안전한 토큰 기반 인증
@@ -270,7 +336,7 @@ npm start
 - ✅ **SQL Injection 방지**: 파라미터화된 쿼리
 - ✅ **비밀번호 해싱**: bcryptjs 사용
 - ✅ **파일 업로드 보안**: 파일 타입 및 크기 제한
-- 🚧 **부정행위 방지**: 포커스 감지, 단축키 차단 (UI 개발 예정)
+- 🚧 **부정행위 방지**: 포커스 감지
 
 ## 🧪 테스트 방법
 
@@ -300,49 +366,3 @@ curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@interview.com","password":"admin123!"}'
 ```
-
-## 📝 다음 개발 단계
-
-### 우선순위 1: 관리자 UI
-- [x] 질문 관리 페이지 (JSON 업로드 인터페이스) ✅
-- [x] 관리자 대시보드 (기본 통계 카드) ✅
-- [ ] 지원자 목록 및 관리 페이지
-- [ ] 테스트 세션 생성 및 관리
-- [ ] 평가 결과 조회 및 분석
-
-### 우선순위 2: 지원자 UI
-- [x] 테스트 안내 페이지 (부정행위 방지 안내) ✅
-- [ ] 테스트 응시 인터페이스 (실제 문제 풀이)
-- [ ] 실시간 시간 관리 및 타이머
-- [ ] 답안 저장 및 제출
-- [ ] 결과 조회 페이지
-
-### 우선순위 3: 고급 기능
-- [ ] 실시간 부정행위 감지 (포커스 감지, 단축키 차단)
-- [ ] 상세 통계 및 차트 시각화
-- [ ] 실시간 채팅 지원
-- [ ] 파일 업로드 인터페이스
-- [ ] 백그라운드 작업 처리
-
-## 🤝 기여 방법
-
-1. 이 저장소를 fork합니다
-2. 새 기능 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`)
-3. 변경사항을 커밋합니다 (`git commit -m 'Add some amazing feature'`)
-4. 브랜치에 push합니다 (`git push origin feature/amazing-feature`)
-5. Pull Request를 생성합니다
-
-## 📄 라이선스
-
-MIT License
-
-## 👥 개발자
-
-- **Backend API**: 완전 구현 완료
-- **Frontend Structure**: 기본 구조 완료
-- **Database**: SQLite 스키마 및 초기화 완료
-- **Authentication**: JWT 인증 시스템 완료
-
----
-
-> **현재 상태**: 백엔드 API 완료, 인증 시스템 안정화, 관리자 질문 관리 UI 구현 완료. 관리자는 질문을 업로드하고 관리할 수 있으며, 지원자는 테스트 안내를 확인할 수 있습니다. 다음 단계는 실제 테스트 응시 인터페이스 개발입니다. 

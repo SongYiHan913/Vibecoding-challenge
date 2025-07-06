@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { formatTimeRemaining } from '@/utils';
 
 interface TimerProps {
   initialTime: number; // 초 단위
   onTimeUp?: () => void;
+  onTimeUpdate?: (timeLeft: number) => void; // 시간 업데이트 콜백
   className?: string;
   warningThreshold?: number; // 경고 표시 임계값 (초)
 }
@@ -11,29 +12,55 @@ interface TimerProps {
 export const Timer: React.FC<TimerProps> = ({
   initialTime,
   onTimeUp,
+  onTimeUpdate,
   className = '',
   warningThreshold = 300, // 기본 5분
 }) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // initialTime이 변경될 때만 timeLeft 업데이트
   useEffect(() => {
-    if (timeLeft <= 0) {
-      onTimeUp?.();
-      return;
+    setTimeLeft(initialTime);
+  }, [initialTime]);
+
+  // 타이머 시작/정지 로직
+  useEffect(() => {
+    // 기존 interval 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
     }
 
-    const interval = setInterval(() => {
+    // 새 interval 시작
+    intervalRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
+        const newTime = prev <= 1 ? 0 : prev - 1;
+        
+        if (newTime <= 0) {
           onTimeUp?.();
-          return 0;
+        } else {
+          onTimeUpdate?.(newTime); // 시간 업데이트 콜백 호출
         }
-        return prev - 1;
+        
+        return newTime;
       });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [timeLeft, onTimeUp]);
+    // cleanup function
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []); // 빈 dependency array로 한 번만 실행
+
+  // 시간이 0이 되면 타이머 정지
+  useEffect(() => {
+    if (timeLeft <= 0 && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, [timeLeft]);
 
   const isWarning = timeLeft <= warningThreshold && timeLeft > 0;
   const isDanger = timeLeft <= 60 && timeLeft > 0; // 1분 이하
