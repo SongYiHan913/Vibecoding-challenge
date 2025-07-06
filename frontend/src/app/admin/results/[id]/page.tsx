@@ -535,6 +535,111 @@ ${specificInstructions}
     );
   }
 
+  // 치팅으로 종료된 경우 채점 불가 처리
+  if (session.termination_reason === 'cheating') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="max-w-2xl mx-auto">
+          <Card className="shadow-lg">
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                  <span className="text-3xl">🚫</span>
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                치팅 감지로 종료된 테스트
+              </h1>
+              <p className="text-gray-600">
+                부정행위가 감지되어 종료된 테스트는 채점할 수 없습니다.
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {/* 치팅 상세 정보 */}
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <span className="text-red-500 text-lg">⚠️</span>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-lg font-medium text-red-800 mb-2">
+                      부정행위 감지 상세
+                    </h3>
+                    <ul className="text-red-700 space-y-1 text-sm">
+                      <li>• 포커스 이탈 횟수: {session.focus_lost_count || 0}회</li>
+                      <li>• 종료 시간: {session.terminated_at ? new Date(session.terminated_at).toLocaleString('ko-KR') : 'N/A'}</li>
+                      <li>• 종료 사유: 포커스 이탈 한계 초과 (3회)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* 기본 정보 */}
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-2">테스트 기본 정보</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">시작 시간</p>
+                    <p className="text-gray-900">{session.started_at ? new Date(session.started_at).toLocaleString('ko-KR') : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">종료 시간</p>
+                    <p className="text-gray-900">{session.terminated_at ? new Date(session.terminated_at).toLocaleString('ko-KR') : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">진행 시간</p>
+                    <p className="text-gray-900">
+                      {session.started_at && session.terminated_at ? 
+                        `${Math.floor((new Date(session.terminated_at).getTime() - new Date(session.started_at).getTime()) / 60000)}분` : 
+                        'N/A'
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">답변 완료 문제</p>
+                    <p className="text-gray-900">{session.answers?.length || 0}개</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 제출된 답안 미리보기 */}
+              {session.answers && session.answers.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">제출된 답안 현황</h4>
+                  <p className="text-sm text-blue-800">
+                    총 {session.questions?.length || 0}문제 중 {session.answers.length}문제 답변 완료
+                  </p>
+                  <div className="mt-2 text-xs text-blue-700">
+                    ※ 부정행위로 인한 조기 종료로 채점이 불가능합니다.
+                  </div>
+                </div>
+              )}
+
+              {/* 관리자 안내 */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <h4 className="font-medium text-yellow-900 mb-2">관리자 안내</h4>
+                <ul className="space-y-1 text-sm text-yellow-800">
+                  <li>• 이 테스트는 부정행위 감지로 인해 자동 종료되었습니다.</li>
+                  <li>• 채점 및 평가가 불가능한 상태입니다.</li>
+                  <li>• 필요 시 지원자에게 재시험 기회를 제공할 수 있습니다.</li>
+                  <li>• 추가 조치가 필요한 경우 관리자에게 문의하세요.</li>
+                </ul>
+              </div>
+
+              {/* 액션 버튼 */}
+              <div className="flex justify-center pt-4">
+                <Button onClick={() => router.back()} variant="secondary">
+                  목록으로 돌아가기
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -604,11 +709,15 @@ ${specificInstructions}
               <div className="flex items-center space-x-2">
                 <p className="text-lg text-gray-900">
                   {session.status === 'completed' ? '완료' : 
-                   session.status === 'terminated' ? '채점 완료' : session.status}
+                   session.status === 'terminated' ? 
+                     (session.termination_reason === 'time-expired' ? '시간 초과 완료' : '채점 완료') : 
+                   session.status}
                 </p>
                 {session.status === 'terminated' && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                    확정
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    session.termination_reason === 'time-expired' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {session.termination_reason === 'time-expired' ? '시간초과' : '확정'}
                   </span>
                 )}
               </div>
@@ -627,10 +736,17 @@ ${specificInstructions}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">부정행위 횟수</p>
-              <p className={`text-lg ${session.cheating_attempts > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                {session.cheating_attempts}회
-              </p>
+              <p className="text-sm font-medium text-gray-700">포커스 이탈 횟수</p>
+              <div className="flex items-center space-x-2">
+                <p className={`text-lg ${(session.focus_lost_count || 0) > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                  {session.focus_lost_count || 0}회
+                </p>
+                {(session.focus_lost_count || 0) > 0 && (
+                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                    {(session.focus_lost_count || 0) >= 3 ? '위험' : '주의'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -641,9 +757,12 @@ ${specificInstructions}
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold text-gray-900">전체 점수</h2>
+            <p className="text-gray-700 mt-1">
+              점수는 지원자 간 상대적 비교를 위해 백분율 점수로 계산/표시됩니다. 표시 배점과 다를 수 있습니다.
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">기술 점수</p>
                 <p className="text-2xl font-bold text-blue-600">{evaluation.scores.technical.toFixed(1)}점</p>
@@ -661,6 +780,38 @@ ${specificInstructions}
                 <p className={`text-3xl font-bold ${getScoreColor(evaluation.scores.total, 100)}`}>
                   {evaluation.scores.total.toFixed(1)}점
                 </p>
+              </div>
+            </div>
+            
+            {/* 테스트 진행 관련 추가 정보 */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">테스트 진행 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600">테스트 완료:</span>
+                  <span className={`font-medium ${
+                    session.termination_reason === 'time-expired' ? 'text-orange-600' : 'text-green-600'
+                  }`}>
+                    {session.termination_reason === 'time-expired' ? '시간 초과로 완료' : '정상 완료'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600">포커스 이탈:</span>
+                  <span className={`font-medium ${
+                    (session.focus_lost_count || 0) > 0 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {session.focus_lost_count || 0}회
+                  </span>
+                  {(session.focus_lost_count || 0) > 0 && (
+                    <span className="text-xs text-red-600">(주의 필요)</span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600">답변 완료:</span>
+                  <span className="font-medium text-gray-900">
+                    {session.answers?.length || 0}/{session.questions?.length || 0}문제
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -708,13 +859,13 @@ ${specificInstructions}
                           <div className="space-y-1">
                             {question.options.map((option, optIndex) => (
                               <div key={optIndex} className={`p-2 rounded ${
-                                question.correct_answer === optIndex ? 'bg-green-50 border border-green-200' :
+                                question.correct_answer === (optIndex + 1) ? 'bg-green-50 border border-green-200' :
                                 (typeof answer?.answer === 'number' && answer.answer === optIndex) ? 'bg-red-50 border border-red-200' : 
                                 'bg-gray-50'
                               }`}>
                                 <span className="text-sm text-gray-900">
                                   {optIndex + 1}. {option}
-                                  {question.correct_answer === optIndex && (
+                                  {question.correct_answer === (optIndex + 1) && (
                                     <span className="ml-2 text-green-600 font-medium">(정답)</span>
                                   )}
                                   {typeof answer?.answer === 'number' && answer.answer === optIndex && (

@@ -171,7 +171,8 @@ export default function QuestionDetailModal({
             </label>
             <div className="space-y-2">
               {question.options.map((option, index) => {
-                const isCorrect = question.correctAnswer === index;
+                // DB에서 정답은 1~4로 저장되므로 index + 1과 비교
+                const isCorrect = question.correct_answer === (index + 1);
                 
                 return (
                   <div
@@ -203,24 +204,24 @@ export default function QuestionDetailModal({
         {/* 주관식 정답 */}
         {question.format === 'essay' && (
           <>
-            {question.correctAnswerText && (
+            {question.correct_answer_text && (
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   모범 답안
                 </label>
                 <div className="px-4 py-3 bg-green-50 rounded-md whitespace-pre-wrap text-gray-900">
-                  {question.correctAnswerText}
+                  {question.correct_answer_text}
                 </div>
               </div>
             )}
             
-            {question.requiredKeywords && question.requiredKeywords.length > 0 && (
+            {question.required_keywords && question.required_keywords.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   필수 키워드
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {question.requiredKeywords.map((keyword, index) => (
+                  {question.required_keywords.map((keyword: string, index: number) => (
                     <span
                       key={index}
                       className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
@@ -239,11 +240,11 @@ export default function QuestionDetailModal({
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-900">
             <div>
               <span className="font-medium">생성일:</span>{' '}
-              {new Date(question.createdAt).toLocaleString('ko-KR')}
+              {(question as any).created_at ? new Date((question as any).created_at).toLocaleString('ko-KR') : 'N/A'}
             </div>
             <div>
               <span className="font-medium">수정일:</span>{' '}
-              {new Date(question.updatedAt).toLocaleString('ko-KR')}
+              {(question as any).updated_at ? new Date((question as any).updated_at).toLocaleString('ko-KR') : 'N/A'}
             </div>
           </div>
         </div>
