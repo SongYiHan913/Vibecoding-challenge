@@ -7,6 +7,49 @@ const router = express.Router();
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
 
+// 간단한 통계 정보 제공 (관리자만)
+router.get('/stats', requireAdmin, (req, res) => {
+  const queries = [
+    // 총 지원자 수
+    'SELECT COUNT(*) as totalCandidates FROM users WHERE role = "candidate"',
+    // 총 질문 수  
+    'SELECT COUNT(*) as totalQuestions FROM questions',
+    // 완료된 테스트 수
+    'SELECT COUNT(*) as completedTests FROM test_sessions WHERE status = "completed"',
+    // 대기 중인 평가 수 (완료된 테스트 중 평가되지 않은 것)
+    `SELECT COUNT(*) as pendingEvaluations 
+     FROM test_sessions ts 
+     LEFT JOIN evaluations e ON ts.id = e.test_session_id 
+     WHERE ts.status = "completed" AND (e.id IS NULL OR e.status != "completed")`
+  ];
+
+  const results = {};
+  let completed = 0;
+
+  queries.forEach((query, index) => {
+    db.get(query, [], (err, row) => {
+      if (err) {
+        console.error('통계 조회 오류:', err);
+        return res.status(500).json({
+          success: false,
+          message: '통계 조회 중 오류가 발생했습니다.'
+        });
+      }
+
+      const keys = ['totalCandidates', 'totalQuestions', 'completedTests', 'pendingEvaluations'];
+      results[keys[index]] = Object.values(row)[0] || 0;
+      completed++;
+
+      if (completed === queries.length) {
+        res.json({
+          success: true,
+          data: results
+        });
+      }
+    });
+  });
+});
+
 // 관리자 대시보드 전체 통계 (관리자만)
 router.get('/admin/overview', requireAdmin, (req, res) => {
   const queries = {
@@ -115,6 +158,70 @@ router.get('/admin/overview', requireAdmin, (req, res) => {
           }
         });
       }
+    });
+  });
+});
+
+// 최근 활동 조회 (간소화된 엔드포인트)
+router.get('/activities', requireAdmin, (req, res) => {
+  const { limit = 20 } = req.query;
+
+  const query = `
+    SELECT 
+      'registration' as type,
+      u.id as entity_id,
+      u.name as entity_name,
+      u.email as details,
+      u.created_at as timestamp
+    FROM users u
+    WHERE u.role = 'candidate'
+    
+    UNION ALL
+    
+    SELECT 
+      'test_completed' as type,
+      ts.candidate_id as entity_id,
+      u.name as entity_name,
+      'Test completed' as details,
+      ts.completed_at as timestamp
+    FROM test_sessions ts
+    JOIN users u ON ts.candidate_id = u.id
+    WHERE ts.status = 'completed' AND ts.completed_at IS NOT NULL
+    
+    UNION ALL
+    
+    SELECT 
+      'evaluation_completed' as type,
+      e.candidate_id as entity_id,
+      u.name as entity_name,
+      CAST(e.total_score as TEXT) || '점' as details,
+      e.evaluated_at as timestamp
+    FROM evaluations e
+    JOIN users u ON e.candidate_id = u.id
+    WHERE e.status = 'completed'
+    
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `;
+
+  db.all(query, [parseInt(limit)], (err, activities) => {
+    if (err) {
+      console.error('최근 활동 조회 오류:', err);
+      return res.status(500).json({
+        success: false,
+        message: '서버 오류가 발생했습니다.'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: activities.map(activity => ({
+        type: activity.type,
+        entityId: activity.entity_id,
+        entityName: activity.entity_name,
+        details: activity.details,
+        timestamp: new Date(activity.timestamp)
+      }))
     });
   });
 });

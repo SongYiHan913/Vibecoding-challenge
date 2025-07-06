@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { dashboardAPI, userAPI, questionAPI } from '@/utils/api';
 import { ROUTES } from '@/constants';
+import { DashboardStats } from '@/types';
 
-interface DashboardStats {
-  totalCandidates: number;
-  totalQuestions: number;
-  completedTests: number;
-  pendingEvaluations: number;
+interface RecentActivity {
+  type: 'registration' | 'test_completed' | 'evaluation_completed';
+  entityId: string;
+  entityName: string;
+  details: string;
+  timestamp: Date;
 }
 
 export default function AdminDashboard() {
@@ -22,6 +24,7 @@ export default function AdminDashboard() {
     completedTests: 0,
     pendingEvaluations: 0,
   });
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,20 +35,48 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       
-      // 지원자 수 조회
-      const candidatesResponse = await userAPI.getCandidates({ page: 1, limit: 1 });
+      // 대시보드 통계 데이터와 최근 활동을 병렬로 조회
+      const [statsResponse, activitiesResponse] = await Promise.all([
+        dashboardAPI.getStats(),
+        dashboardAPI.getRecentActivities()
+      ]);
       
-      // 질문 수 조회
-      const questionsResponse = await questionAPI.getQuestions({ page: 1, limit: 1 });
-      
-      setStats({
-        totalCandidates: (candidatesResponse.data as any)?.pagination?.total || 0,
-        totalQuestions: (questionsResponse.data as any)?.pagination?.total || 0,
-        completedTests: 0, // 추후 testAPI에서 조회
-        pendingEvaluations: 0, // 추후 evaluationAPI에서 조회
-      });
+      if (statsResponse.success) {
+        const data = statsResponse.data as DashboardStats;
+        setStats({
+          totalCandidates: data.totalCandidates || 0,
+          totalQuestions: data.totalQuestions || 0,
+          completedTests: data.completedTests || 0,
+          pendingEvaluations: data.pendingEvaluations || 0,
+        });
+      } else {
+        console.error('통계 데이터 조회 실패:', statsResponse.message);
+        // 기본값으로 설정
+        setStats({
+          totalCandidates: 0,
+          totalQuestions: 0,
+          completedTests: 0,
+          pendingEvaluations: 0,
+        });
+      }
+
+      if (activitiesResponse.success) {
+        const activities = activitiesResponse.data as RecentActivity[];
+        setRecentActivities(activities || []);
+      } else {
+        console.error('최근 활동 조회 실패:', activitiesResponse.message);
+        setRecentActivities([]);
+      }
     } catch (error) {
       console.error('대시보드 데이터 조회 오류:', error);
+      // 오류 시 기본값으로 설정
+      setStats({
+        totalCandidates: 0,
+        totalQuestions: 0,
+        completedTests: 0,
+        pendingEvaluations: 0,
+      });
+      setRecentActivities([]);
     } finally {
       setLoading(false);
     }
@@ -61,6 +92,10 @@ export default function AdminDashboard() {
 
   const navigateToResults = () => {
     router.push(ROUTES.ADMIN_RESULTS);
+  };
+
+  const navigateToPendingEvaluations = () => {
+    router.push(`${ROUTES.ADMIN_RESULTS}?filter=pending-evaluation`);
   };
 
   return (
@@ -115,7 +150,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={navigateToResults}>
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -133,7 +168,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={navigateToResults}>
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={navigateToPendingEvaluations}>
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -192,7 +227,7 @@ export default function AdminDashboard() {
       {/* 최근 활동 */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold text-gray-900" >최근 활동</h2>
+          <h2 className="text-lg font-semibold text-gray-900">최근 활동</h2>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -200,6 +235,49 @@ export default function AdminDashboard() {
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-2 text-gray-600">로딩 중...</p>
+              </div>
+            ) : recentActivities.length > 0 ? (
+              <div className="space-y-3">
+                {recentActivities.map((activity, index) => {
+                  const getActivityInfo = (type: string) => {
+                    switch (type) {
+                      case 'registration':
+                        return { icon: '👤', color: 'text-blue-600', bgColor: 'bg-blue-100', label: '지원자 등록' };
+                      case 'test_completed':
+                        return { icon: '✅', color: 'text-green-600', bgColor: 'bg-green-100', label: '테스트 완료' };
+                      case 'evaluation_completed':
+                        return { icon: '📊', color: 'text-purple-600', bgColor: 'bg-purple-100', label: '평가 완료' };
+                      default:
+                        return { icon: '📋', color: 'text-gray-600', bgColor: 'bg-gray-100', label: '활동' };
+                    }
+                  };
+
+                  const activityInfo = getActivityInfo(activity.type);
+
+                  return (
+                    <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <div className={`flex-shrink-0 w-8 h-8 ${activityInfo.bgColor} rounded-full flex items-center justify-center`}>
+                        <span className={`text-sm ${activityInfo.color}`}>{activityInfo.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-900">
+                            {activityInfo.label}: {activity.entityName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(activity.timestamp).toLocaleDateString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <p className="text-sm text-gray-600">{activity.details}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">

@@ -475,7 +475,7 @@ router.post('/:sessionId/complete', requireCandidate, (req, res) => {
 
 // 관리자용 테스트 세션 목록 조회 (관리자만)
 router.get('/admin/list', requireAdmin, (req, res) => {
-  const { page = 1, limit = 10, status, candidateName, appliedField } = req.query;
+  const { page = 1, limit = 10, status, candidateName, appliedField, evaluation } = req.query;
   const offset = (page - 1) * limit;
 
   let query = `
@@ -511,6 +511,7 @@ router.get('/admin/list', requireAdmin, (req, res) => {
     SELECT COUNT(*) as total
     FROM test_sessions ts
     JOIN users u ON ts.candidate_id = u.id
+    LEFT JOIN evaluations e ON ts.id = e.test_session_id
     WHERE u.role = 'candidate'
   `;
 
@@ -533,6 +534,15 @@ router.get('/admin/list', requireAdmin, (req, res) => {
   if (appliedField) {
     conditions.push('u.applied_field = ?');
     params.push(appliedField);
+  }
+
+  // 평가 상태 필터
+  if (evaluation) {
+    if (evaluation === 'pending') {
+      conditions.push('e.id IS NULL AND ts.status = "completed"');
+    } else if (evaluation === 'completed') {
+      conditions.push('e.id IS NOT NULL');
+    }
   }
 
   // 조건 추가
