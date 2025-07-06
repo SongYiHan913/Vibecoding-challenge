@@ -780,11 +780,13 @@ router.post('/:sessionId/focus-lost', requireCandidate, async (req, res) => {
   const { sessionId } = req.params;
   const candidateId = req.user.userId;
 
+  console.log(`🔍 포커스 이탈 처리 요청 - 세션: ${sessionId}, 지원자: ${candidateId}`);
+
   try {
-    // 1. 테스트 세션 조회
+    // 1. 테스트 세션 조회 (상태 확인 포함)
     const session = await new Promise((resolve, reject) => {
       db.get(
-        'SELECT focus_lost_count FROM test_sessions WHERE id = ? AND candidate_id = ? AND status = "in-progress"',
+        'SELECT id, focus_lost_count, status FROM test_sessions WHERE id = ? AND candidate_id = ?',
         [sessionId, candidateId],
         (err, session) => {
           if (err) reject(err);
@@ -794,55 +796,101 @@ router.post('/:sessionId/focus-lost', requireCandidate, async (req, res) => {
     });
 
     if (!session) {
+      console.warn(`❌ 세션 조회 실패 - 세션: ${sessionId}, 지원자: ${candidateId}`);
       return res.status(404).json({
         success: false,
-        message: '진행 중인 테스트 세션을 찾을 수 없습니다.'
+        message: '테스트 세션을 찾을 수 없습니다.'
       });
     }
 
-    const maxAttempts = 3; // 결정된 허용 횟수
-    const newFocusLostCount = session.focus_lost_count + 1;
+    // 테스트가 이미 종료된 경우 포커스 이탈 처리 거부
+    if (session.status !== 'in-progress') {
+      console.log(`⏭️  포커스 이탈 처리 스킵 - 테스트 이미 종료됨 (상태: ${session.status})`);
+      return res.status(400).json({
+        success: false,
+        message: '이미 종료된 테스트입니다.',
+        data: {
+          sessionStatus: session.status,
+          reason: 'test_already_finished'
+        }
+      });
+    }
+
+    const maxAttempts = 3; // 허용 횟수
+    const currentFocusLostCount = session.focus_lost_count || 0; // NULL 처리
+    const newFocusLostCount = currentFocusLostCount + 1;
+
+    console.log(`📊 포커스 이탈 카운트 업데이트 - 현재: ${currentFocusLostCount}, 신규: ${newFocusLostCount}, 최대: ${maxAttempts}`);
 
     // 2. 포커스 이탈 카운트 업데이트
-    await new Promise((resolve, reject) => {
+    const updateResult = await new Promise((resolve, reject) => {
       db.run(
         'UPDATE test_sessions SET focus_lost_count = ?, updated_at = datetime("now") WHERE id = ?',
         [newFocusLostCount, sessionId],
         function(err) {
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            reject(err);
+          } else {
+            resolve(this.changes);
+          }
         }
       );
     });
 
+    if (updateResult === 0) {
+      console.warn(`❌ 포커스 이탈 카운트 업데이트 실패 - 세션: ${sessionId}`);
+      return res.status(500).json({
+        success: false,
+        message: '포커스 이탈 처리 중 오류가 발생했습니다.'
+      });
+    }
+
     // 3. 허용 한계 초과 시 테스트 종료 및 평가
     if (newFocusLostCount >= maxAttempts) {
-      console.log(`🚨 부정행위 감지로 테스트 자동 종료 - 세션: ${sessionId}, 이탈 횟수: ${newFocusLostCount}`);
+      console.log(`🚨 부정행위 감지로 테스트 자동 종료 - 세션: ${sessionId}, 이탈 횟수: ${newFocusLostCount}/${maxAttempts}`);
       
       // 3-1. 테스트 세션 종료 처리
-      await new Promise((resolve, reject) => {
+      const terminateResult = await new Promise((resolve, reject) => {
         db.run(
           `UPDATE test_sessions SET status = "terminated", terminated_at = datetime("now"), 
            termination_reason = "cheating" WHERE id = ?`,
           [sessionId],
           function(err) {
-            if (err) reject(err);
-            else resolve();
+            if (err) {
+              reject(err);
+            } else {
+              resolve(this.changes);
+            }
           }
         );
       });
 
+      if (terminateResult === 0) {
+        console.warn(`❌ 테스트 세션 종료 처리 실패 - 세션: ${sessionId}`);
+      } else {
+        console.log(`✅ 테스트 세션 종료 완료 - 세션: ${sessionId}`);
+      }
+
       // 3-2. 지원자 상태를 evaluated로 변경
-      await new Promise((resolve, reject) => {
+      const candidateUpdateResult = await new Promise((resolve, reject) => {
         db.run(
           'UPDATE users SET status = "evaluated", updated_at = datetime("now") WHERE id = ?',
           [candidateId],
           function(err) {
-            if (err) reject(err);
-            else resolve();
+            if (err) {
+              reject(err);
+            } else {
+              resolve(this.changes);
+            }
           }
         );
       });
+
+      if (candidateUpdateResult === 0) {
+        console.warn(`❌ 지원자 상태 업데이트 실패 - 지원자: ${candidateId}`);
+      } else {
+        console.log(`✅ 지원자 상태 업데이트 완료 - 지원자: ${candidateId}`);
+      }
 
       // 3-3. 자동 평가 수행 (부정행위여도 제출된 답안까지는 채점)
       console.log(`🎯 부정행위 종료 후 자동 평가 시작 - 세션: ${sessionId}`);
@@ -889,23 +937,27 @@ router.post('/:sessionId/focus-lost', requireCandidate, async (req, res) => {
 
     } else {
       // 아직 허용 범위 내
+      const remainingAttempts = maxAttempts - newFocusLostCount;
+      console.log(`⚠️  포커스 이탈 경고 - 세션: ${sessionId}, 이탈 횟수: ${newFocusLostCount}/${maxAttempts}, 남은 기회: ${remainingAttempts}`);
+      
       res.json({
         success: true,
         message: '포커스 이탈이 기록되었습니다.',
         data: {
           focusLostCount: newFocusLostCount,
           maxAttempts: maxAttempts,
-          remainingAttempts: maxAttempts - newFocusLostCount,
-          warning: `${maxAttempts - newFocusLostCount}회 더 포커스를 잃으면 테스트가 종료됩니다.`
+          remainingAttempts: remainingAttempts,
+          warning: `${remainingAttempts}회 더 포커스를 잃으면 테스트가 종료됩니다.`
         }
       });
     }
 
   } catch (error) {
-    console.error('포커스 이탈 처리 오류:', error);
+    console.error('❌ 포커스 이탈 처리 오류:', error);
     res.status(500).json({
       success: false,
-      message: '서버 오류가 발생했습니다.'
+      message: '서버 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -1046,39 +1098,30 @@ router.post('/reset', requireCandidate, async (req, res) => {
   }
 
   try {
-    console.log(`🔄 테스트 데이터 초기화 시작 - 지원자: ${candidateId}`);
+    console.log(`🔄 테스트 상태 초기화 시작 - 지원자: ${candidateId}`);
     
-    // 1. 해당 지원자의 모든 평가 기록 삭제
-    await new Promise((resolve, reject) => {
-      db.run(
-        'DELETE FROM evaluations WHERE candidate_id = ?',
+    // 지원자 정보 조회 (현재 상태 확인)
+    const currentUser = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id, status, test_session_id FROM users WHERE id = ? AND role = "candidate"',
         [candidateId],
-        function(err) {
+        (err, user) => {
           if (err) reject(err);
-          else {
-            console.log(`🗑️  평가 기록 삭제 완료 - ${this.changes}개`);
-            resolve();
-          }
+          else resolve(user);
         }
       );
     });
 
-    // 2. 해당 지원자의 모든 테스트 세션 삭제
-    await new Promise((resolve, reject) => {
-      db.run(
-        'DELETE FROM test_sessions WHERE candidate_id = ?',
-        [candidateId],
-        function(err) {
-          if (err) reject(err);
-          else {
-            console.log(`🗑️  테스트 세션 삭제 완료 - ${this.changes}개`);
-            resolve();
-          }
-        }
-      );
-    });
+    if (!currentUser) {
+      return res.status(404).json({
+        success: false,
+        message: '지원자 정보를 찾을 수 없습니다.'
+      });
+    }
 
-    // 3. 지원자 상태를 pending으로 변경
+    console.log(`📋 현재 지원자 상태: ${currentUser.status}, 테스트 세션: ${currentUser.test_session_id || 'None'}`);
+
+    // 지원자 상태를 pending으로 변경하고 test_session_id 연결 해제
     await new Promise((resolve, reject) => {
       db.run(
         'UPDATE users SET status = "pending", test_session_id = NULL, updated_at = datetime("now") WHERE id = ?',
@@ -1086,30 +1129,33 @@ router.post('/reset', requireCandidate, async (req, res) => {
         function(err) {
           if (err) reject(err);
           else {
-            console.log(`🔄 지원자 상태 pending으로 변경 완료`);
+            console.log(`🔄 지원자 상태 pending으로 변경 완료 (기존: ${currentUser.status} → 신규: pending)`);
             resolve();
           }
         }
       );
     });
 
-    console.log(`✅ 테스트 데이터 초기화 완료 - 지원자: ${candidateId}`);
+    console.log(`✅ 테스트 상태 초기화 완료 - 지원자: ${candidateId}`);
+    console.log(`📝 참고: 기존 테스트 세션 및 평가 기록은 보존됩니다.`);
 
     res.json({
       success: true,
-      message: '테스트 데이터가 초기화되었습니다. 새로운 테스트를 시작할 수 있습니다.',
+      message: '테스트 상태가 초기화되었습니다. 새로운 테스트를 시작할 수 있습니다.',
       data: {
         candidateId,
         resetAt: new Date().toISOString(),
-        status: 'pending'
+        previousStatus: currentUser.status,
+        newStatus: 'pending',
+        note: '기존 테스트 기록은 보존되었습니다.'
       }
     });
 
   } catch (error) {
-    console.error('테스트 데이터 초기화 오류:', error);
+    console.error('테스트 상태 초기화 오류:', error);
     res.status(500).json({
       success: false,
-      message: '테스트 데이터 초기화 중 오류가 발생했습니다.'
+      message: '테스트 상태 초기화 중 오류가 발생했습니다.'
     });
   }
 });

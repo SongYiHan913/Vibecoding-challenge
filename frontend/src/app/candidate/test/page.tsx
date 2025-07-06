@@ -58,7 +58,7 @@ export default function TestPage() {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   
-  // 주관식 답안 텍스트박스 포커스 유지를 위한 ref
+  // 주관식 답안 텍스트박스 포커스 위한 ref
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 페이지 로드 시 사용자 상태 확인 (한 번만 실행)
@@ -131,6 +131,15 @@ export default function TestPage() {
           }
         }
       }
+
+      // 테스트 시작 후 페이지에 포커스 설정 (포커스 감지 시스템 안정화를 위해)
+      setTimeout(() => {
+        if (document.body && !document.hasFocus()) {
+          window.focus();
+          document.body.focus();
+          console.log('🎯 테스트 페이지 포커스 설정 완료');
+        }
+      }, 500); // 0.5초 후 포커스 설정
     }
   }, [currentSession, questions, testStarted, currentQuestionIndex, answers]);
 
@@ -152,31 +161,94 @@ export default function TestPage() {
     }
   }, [currentQuestionIndex, currentQuestion, answers]);
 
-  // 포커스 이탈 감지
+  // 포커스 이탈 감지 (향상된 버전)
   useEffect(() => {
-    if (!testStarted || !currentSession) return;
+    // 테스트가 시작되지 않았거나, 세션이 없거나, 이미 완료된 경우 비활성화
+    if (!testStarted || !currentSession || !isTestActive || testCompletionInfo.isCompleted) {
+      return;
+    }
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // 포커스 이탈 감지
-        fetch(`/api/test-sessions/${currentSession.id}/focus-lost`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-        .then(response => response.json())
-        .then(result => {
+    console.log('🔍 포커스 이탈 감지 시스템 활성화', { 
+      sessionId: currentSession.id, 
+      focusLostCount,
+      isTestActive,
+      testCompleted: testCompletionInfo.isCompleted
+    });
+
+    // 초기 안정화를 위한 지연 시간 (3초)
+    const stabilizationDelay = 3000;
+    let isStabilized = false;
+    let isProcessingFocusLost = false;
+    let focusLostTimeout: NodeJS.Timeout | null = null;
+
+    // 초기 안정화 타이머
+    const stabilizationTimer = setTimeout(() => {
+      isStabilized = true;
+      console.log('✅ 포커스 감지 시스템 안정화 완료 - 이제 포커스 이탈 감지 시작');
+    }, stabilizationDelay);
+
+    // 포커스 이탈을 감지하는 함수 (디바운스 적용)
+    const handleFocusLost = async (eventType: string) => {
+      // 안정화되지 않았거나 테스트가 종료되었으면 무시
+      if (!isStabilized || !isTestActive || testCompletionInfo.isCompleted) {
+        console.log(`⏭️  포커스 이탈 이벤트 스킵: ${eventType} (안정화: ${isStabilized}, 활성: ${isTestActive}, 완료: ${testCompletionInfo.isCompleted})`);
+        return;
+      }
+
+      // 이미 처리 중이면 무시
+      if (isProcessingFocusLost) {
+        console.log(`⏭️  포커스 이탈 이벤트 스킵 (처리 중): ${eventType}`);
+        return;
+      }
+
+      // 기존 타이머가 있으면 클리어
+      if (focusLostTimeout) {
+        clearTimeout(focusLostTimeout);
+      }
+
+      // 1초 디바운스 적용 (연속 이벤트 방지)
+      focusLostTimeout = setTimeout(async () => {
+        // 다시 한 번 상태 확인
+        if (!isTestActive || testCompletionInfo.isCompleted) {
+          console.log('⏭️  포커스 이탈 처리 스킵 - 테스트 종료됨');
+          return;
+        }
+
+        isProcessingFocusLost = true;
+        
+        console.log(`🚨 포커스 이탈 감지: ${eventType}`, { 
+          currentFocusCount: focusLostCount,
+          sessionId: currentSession.id 
+        });
+
+        try {
+          const response = await fetch(`/api/test-sessions/${currentSession.id}/focus-lost`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          console.log('📋 포커스 이탈 처리 결과:', result);
+
           if (result.success) {
             // 백엔드에서 받은 정확한 카운트로 업데이트
             setFocusLostCount(result.data.focusLostCount);
             
-            alert(result.data.warning);
+            alert(`⚠️ ${result.data.warning}\n\n현재 포커스 이탈 횟수: ${result.data.focusLostCount}/${result.data.maxAttempts}`);
           } else {
             // 테스트 종료됨 (3회 초과)
-            alert(result.message);
+            console.log('🛑 테스트 종료 - 부정행위 감지');
+            alert(`🚫 ${result.message}\n\n테스트가 자동으로 종료됩니다.`);
+            
             finishTest();
+            
             // 부정행위로 인한 테스트 종료 정보 설정
             setTestCompletionInfo({
               isCompleted: true,
@@ -184,19 +256,92 @@ export default function TestPage() {
               completedAt: new Date().toISOString(),
             });
           }
-        })
-        .catch(error => {
-          console.error('포커스 이탈 처리 오류:', error);
-        });
+        } catch (error) {
+          console.error('❌ 포커스 이탈 처리 오류:', error);
+          // 네트워크 오류 등의 경우에도 로컬에서 카운트 증가
+          const newCount = focusLostCount + 1;
+          setFocusLostCount(newCount);
+          
+          if (newCount >= 3) {
+            alert('🚫 포커스 이탈 한계 초과로 테스트가 종료됩니다.');
+            finishTest();
+            setTestCompletionInfo({
+              isCompleted: true,
+              reason: 'cheating',
+              completedAt: new Date().toISOString(),
+            });
+          } else {
+            alert(`⚠️ 포커스 이탈이 감지되었습니다.\n${3 - newCount}회 더 포커스를 잃으면 테스트가 종료됩니다.`);
+          }
+        } finally {
+          isProcessingFocusLost = false;
+        }
+      }, 1000); // 1초 디바운스
+    };
+
+    // 1. 페이지 가시성 변경 감지 (탭 전환, 최소화 등)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleFocusLost('visibilitychange - 탭/창 비활성화');
       }
     };
 
+    // 2. 윈도우 포커스 이탈 감지
+    const handleWindowBlur = () => {
+      handleFocusLost('blur - 윈도우 포커스 이탈');
+    };
+
+    // 3. 개발자 도구 감지 (크기 변경 기반)
+    let devToolsOpen = false;
+    const checkDevTools = () => {
+      if (!isStabilized || !isTestActive || testCompletionInfo.isCompleted) {
+        return;
+      }
+
+      const threshold = 160;
+      if (window.outerHeight - window.innerHeight > threshold || 
+          window.outerWidth - window.innerWidth > threshold) {
+        if (!devToolsOpen) {
+          devToolsOpen = true;
+          handleFocusLost('devtools - 개발자 도구 열림');
+        }
+      } else {
+        devToolsOpen = false;
+      }
+    };
+
+    // 이벤트 리스너 등록
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    
+    // 개발자 도구 감지를 위한 주기적 체크
+    const devToolsInterval = setInterval(checkDevTools, 2000); // 2초마다 체크
     
     return () => {
+      console.log('🔍 포커스 이탈 감지 시스템 비활성화');
+      
+      // 모든 타이머 정리
+      clearTimeout(stabilizationTimer);
+      if (focusLostTimeout) {
+        clearTimeout(focusLostTimeout);
+      }
+      
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      clearInterval(devToolsInterval);
     };
-  }, [testStarted, currentSession, router, token, finishTest, setFocusLostCount]);
+  }, [testStarted, currentSession, isTestActive, testCompletionInfo.isCompleted, router, token, finishTest, setFocusLostCount, focusLostCount]);
+
+  // 테스트 완료/종료 시 포커스 감지 즉시 중단
+  useEffect(() => {
+    if (testCompletionInfo.isCompleted || !isTestActive) {
+      console.log('🛑 테스트 종료 감지 - 포커스 감지 시스템 비활성화', {
+        isCompleted: testCompletionInfo.isCompleted,
+        isTestActive: isTestActive,
+        reason: testCompletionInfo.reason
+      });
+    }
+  }, [testCompletionInfo.isCompleted, isTestActive, testCompletionInfo.reason]);
 
   // 키보드 단축키 차단 (개발자 도구 등)
   useEffect(() => {
@@ -410,16 +555,22 @@ export default function TestPage() {
     const confirmMessage = `테스트를 완료하시겠습니까?\n\n답변 완료: ${answeredCount}/${totalQuestions}문제\n미답변 문제는 0점 처리됩니다.`;
     
     if (confirm(confirmMessage)) {
+      // 포커스 감지 즉시 중단을 위해 테스트 완료 상태를 먼저 설정
+      console.log('🛑 테스트 완료 시작 - 포커스 감지 시스템 즉시 중단');
+      setTestCompletionInfo({
+        isCompleted: true,
+        reason: 'completed',
+        completedAt: new Date().toISOString(),
+      });
+      
       const result = await finishTest();
       if (result && result.success) {
-        // 테스트 완료 정보 설정하여 완료 화면 표시
-        setTestCompletionInfo({
-          isCompleted: true,
-          reason: 'completed',
-          completedAt: new Date().toISOString(),
-        });
+        console.log('✅ 테스트 완료 성공');
       } else {
+        console.error('❌ 테스트 완료 오류:', result);
         alert('테스트 완료 중 오류가 발생했습니다. 다시 시도해주세요.');
+        // 오류 시 상태 복원
+        setTestCompletionInfo({ isCompleted: false });
       }
     }
   };
@@ -433,7 +584,7 @@ export default function TestPage() {
 
   // 테스트 데이터 초기화 (개발용)
   const handleResetTestData = async () => {
-    if (!confirm('⚠️ 경고\n\n현재 테스트 결과와 평가 기록이 모두 삭제됩니다.\n정말로 초기화하시겠습니까?\n\n초기화 후 새로운 테스트를 다시 시작할 수 있습니다.')) {
+    if (!confirm('🔄 테스트 상태 초기화\n\n현재 테스트 상태를 pending으로 되돌려 새로운 테스트를 시작할 수 있게 합니다.\n\n⚠️ 주의사항:\n• 기존 테스트 기록과 평가 결과는 보존됩니다\n• 상태만 초기화하여 새 테스트를 시작할 수 있게 됩니다\n\n계속하시겠습니까?')) {
       return;
     }
 
@@ -450,7 +601,7 @@ export default function TestPage() {
       const result = await response.json();
 
       if (result.success) {
-        alert('✅ 테스트 데이터가 초기화되었습니다.\n페이지를 새로고침하여 새로운 테스트를 시작할 수 있습니다.');
+        alert('✅ 테스트 상태가 초기화되었습니다.\n\n📝 기존 테스트 기록은 보존되었습니다.\n페이지를 새로고침하여 새로운 테스트를 시작할 수 있습니다.');
         
         // 클라이언트 상태 초기화
         resetTest(); // Zustand 스토어 초기화
@@ -466,7 +617,7 @@ export default function TestPage() {
         alert(`❌ 초기화 실패\n\n${result.message || '알 수 없는 오류가 발생했습니다.'}`);
       }
     } catch (error) {
-      console.error('테스트 데이터 초기화 오류:', error);
+      console.error('테스트 상태 초기화 오류:', error);
       alert('❌ 초기화 중 오류가 발생했습니다.\n나중에 다시 시도해주세요.');
     } finally {
       setIsResetting(false);
@@ -599,7 +750,7 @@ export default function TestPage() {
                 <div>
                   <h4 className="font-medium text-yellow-900 mb-1">🛠️ 개발자 도구</h4>
                   <p className="text-sm text-yellow-700">
-                    테스트 데이터를 초기화하여 새로운 테스트를 다시 시작할 수 있습니다.
+                    테스트 상태를 초기화하여 새로운 테스트를 다시 시작할 수 있습니다.
                   </p>
                 </div>
                 <Button
@@ -614,12 +765,12 @@ export default function TestPage() {
                       초기화 중...
                     </>
                   ) : (
-                    '🔄 초기화'
+                    '🔄 상태 초기화'
                   )}
                 </Button>
               </div>
               <div className="mt-3 text-xs text-yellow-600">
-                ⚠️ 주의: 현재 테스트 결과와 평가 기록이 모두 삭제됩니다.
+                📝 기존 테스트 기록은 보존되며, 상태만 pending으로 초기화됩니다.
               </div>
             </div>
 
