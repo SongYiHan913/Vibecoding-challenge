@@ -8,6 +8,223 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Questions
+ *   description: 면접 질문 관리 API
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Question:
+ *       type: object
+ *       required:
+ *         - title
+ *         - content
+ *         - category
+ *         - difficulty
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: 질문 ID
+ *         title:
+ *           type: string
+ *           description: 질문 제목
+ *         content:
+ *           type: string
+ *           description: 질문 내용
+ *         category:
+ *           type: string
+ *           enum: [technical, personality, problem_solving]
+ *           description: 질문 카테고리
+ *         difficulty:
+ *           type: string
+ *           enum: [easy, medium, hard]
+ *           description: 난이도
+ *         expected_answer:
+ *           type: string
+ *           description: 예상 답변
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: 생성 일시
+ */
+
+/**
+ * @swagger
+ * /api/questions:
+ *   get:
+ *     summary: 모든 면접 질문 목록 조회
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 페이지 번호
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 페이지당 항목 수
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: 질문 카테고리 필터
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *         description: 난이도 필터
+ *     responses:
+ *       200:
+ *         description: 질문 목록 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Question'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *
+ *   post:
+ *     summary: 새 면접 질문 등록
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *               - category
+ *               - difficulty
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [technical, personality, problem_solving]
+ *               difficulty:
+ *                 type: string
+ *                 enum: [easy, medium, hard]
+ *               expected_answer:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 질문 등록 성공
+ *       400:
+ *         description: 잘못된 요청
+ */
+
+/**
+ * @swagger
+ * /api/questions/{id}:
+ *   get:
+ *     summary: 특정 면접 질문 조회
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 질문 ID
+ *     responses:
+ *       200:
+ *         description: 질문 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Question'
+ *       404:
+ *         description: 질문을 찾을 수 없음
+ *
+ *   put:
+ *     summary: 면접 질문 수정
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 질문 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [technical, personality, problem_solving]
+ *               difficulty:
+ *                 type: string
+ *                 enum: [easy, medium, hard]
+ *               expected_answer:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 질문 수정 성공
+ *       400:
+ *         description: 잘못된 요청
+ *       404:
+ *         description: 질문을 찾을 수 없음
+ *
+ *   delete:
+ *     summary: 면접 질문 삭제
+ *     tags: [Questions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 질문 ID
+ *     responses:
+ *       200:
+ *         description: 질문 삭제 성공
+ *       404:
+ *         description: 질문을 찾을 수 없음
+ */
+
 // uploads/questions 디렉토리 존재 확인 및 생성
 const uploadsDir = 'uploads/questions/';
 if (!fs.existsSync(uploadsDir)) {

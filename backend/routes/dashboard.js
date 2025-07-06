@@ -4,6 +4,142 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Dashboard
+ *   description: 대시보드 통계 및 요약 정보 API
+ */
+
+/**
+ * @swagger
+ * /api/dashboard/summary:
+ *   get:
+ *     summary: 대시보드 요약 정보 조회
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 대시보드 요약 정보 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total_candidates:
+ *                       type: integer
+ *                       description: 전체 지원자 수
+ *                     active_sessions:
+ *                       type: integer
+ *                       description: 진행 중인 세션 수
+ *                     completed_sessions:
+ *                       type: integer
+ *                       description: 완료된 세션 수
+ *                     average_score:
+ *                       type: number
+ *                       description: 전체 평균 점수
+ */
+
+/**
+ * @swagger
+ * /api/dashboard/statistics:
+ *   get:
+ *     summary: 상세 통계 정보 조회
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: 시작 날짜 (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: 종료 날짜 (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: 통계 정보 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     daily_sessions:
+ *                       type: array
+ *                       description: 일별 세션 통계
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date:
+ *                             type: string
+ *                             format: date
+ *                           count:
+ *                             type: integer
+ *                     category_stats:
+ *                       type: object
+ *                       description: 카테고리별 통계
+ *                     difficulty_stats:
+ *                       type: object
+ *                       description: 난이도별 통계
+ */
+
+/**
+ * @swagger
+ * /api/dashboard/recent-activities:
+ *   get:
+ *     summary: 최근 활동 내역 조회
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: 조회할 활동 수
+ *     responses:
+ *       200:
+ *         description: 최근 활동 조회 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       type:
+ *                         type: string
+ *                         enum: [session_start, session_complete, evaluation_added]
+ *                       description:
+ *                         type: string
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ */
+
 // 모든 라우트에 인증 필요
 router.use(authenticateToken);
 
