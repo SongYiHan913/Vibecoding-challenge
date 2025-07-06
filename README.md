@@ -2,6 +2,14 @@
 
 개발자의 기술 역량, 인성, 문제 해결 능력을 평가하는 온라인 면접 플랫폼입니다.
 
+* 활용 AI
+  - ChatGPT Pro : 일반적인 질의 응답, 프롬프트 템플릿을 통한 면접 문제 리스트 출제
+  - Cursor AI (claude-4-sonnet) : 시스템 설계 및 구현, 문서화
+
+## 주의 사항
+
+* Mac 개발 환경만 지원합니다. (시간 상 크로스플랫폼 개발 이슈 해결하지 않았음)
+
 ## 🎯 프로젝트 상태
 
 ### ✅ 완료된 기능
@@ -19,6 +27,34 @@
 - **지원자 테스트 안내**: 부정행위 방지 안내 및 동의 페이지 
 - **환경 설정**: .env 파일 자동 생성 및 JWT 설정 완료 
 
+## 생성형 AI 활용
+
+### 1. 요구사항 분석/설계
+
+* 요구사항 분석 : design/requirement
+* 설계 문서 : design/design
+* 상세 설계를 위한 사용자 의사결정 사항 도출 : design/testsession_decisions.md
+
+### 2. 구현
+
+* Nodejs (React Next.js + Node Express) 구조 생성
+* Frontend/backend 소스코드 생성
+* Backend 테스트코드 생성
+
+### 3. 문제 생성
+
+* 지원자 온라인 면접 시 출제할 문제 생성
+* AI 에 질의하기 위한 프롬프트 템플릿 생성
+  - design/questions/README.md
+
+### 4. 프롬프트 히스토리
+
+* 프로젝트 루트의 prompt/*.md 파일들
+
+### 5. IDE 룰셋
+
+* .cursorrules
+* 코드 생성 시 작성 규칙 및 AI tool 선택 옵션 적용
 
 ## 🏗️ 프로젝트 구조
 
@@ -73,7 +109,7 @@ Vibecoding-challenge/
 │   └── interview_questions_problem_solving.json
 ├── database/              # SQLite 데이터베이스 파일
 │   └── interview.db       # 자동 생성된 DB
-├── uploads/               # 업로드된 파일
+├── prompt/                # 개발에 사용한 프롬프트 모음
 └── design/                # 설계 문서
 ```
 
